@@ -19,7 +19,7 @@ unitTests :: TestTree
 unitTests = testGroup "Unit Tests" [testCase "2+2 = 4" testAddition]
   where
     testAddition :: Assertion
-    testAddition = (2 + 2) @?= 4
+    testAddition = (2 + 2) @?= (4 :: Integer)
 
 
 properties :: TestTree
