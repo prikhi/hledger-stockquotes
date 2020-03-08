@@ -78,6 +78,7 @@ executables:
             - bytestring
             - cmdargs
             - text
+            - time
 
 tests:
     hledger-stockquotes-test:

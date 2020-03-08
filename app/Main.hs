@@ -2,6 +2,11 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
+import           Control.Monad                  ( forM_ )
+import           Data.Time                      ( Day
+                                                , formatTime
+                                                , defaultTimeLocale
+                                                )
 import           System.Console.CmdArgs         ( (&=)
                                                 , Data
                                                 , Typeable
@@ -34,8 +39,22 @@ main = do
     (commodities, start, end) <- getCommoditiesAndDateRange
         (T.pack <$> excludedCurrencies)
         journalFile
-    prices <- fetchPrices cfg commodities start end rateLimit
-    LBS.writeFile outputFile $ makePriceDirectives prices
+    if not dryRun
+        then do
+            prices <- fetchPrices cfg commodities start end rateLimit
+            LBS.writeFile outputFile $ makePriceDirectives prices
+        else do
+            putStrLn
+                $  "Querying from "
+                <> showDate start
+                <> " to "
+                <> showDate end
+            putStrLn "Querying Commodities:"
+            forM_ commodities
+                $ \commodity -> putStrLn $ "\t" <> T.unpack commodity
+  where
+    showDate :: Day -> String
+    showDate = formatTime defaultTimeLocale "%Y-%m-%d"
 
 
 data Args =
@@ -45,6 +64,7 @@ data Args =
         , journalFile :: FilePath
         , outputFile :: FilePath
         , excludedCurrencies :: [String]
+        , dryRun :: Bool
         } deriving (Data, Typeable, Show, Eq)
 
 argSpec :: Args
@@ -69,6 +89,8 @@ argSpec =
                                    &= typ "OUTPUT_FILE"
             , excludedCurrencies = ["$", "USD"] &= args &= typ
                                        "EXCLUDED_CURRENCY ..."
+            , dryRun = False &= explicit &= name "dry-run" &= name "d" &= help
+                "Print the commodities and dates that would be processed."
             }
         &= summary "hledger-stockquotes, v0.1.0.0"
         &= program "hledger-stockquotes"
