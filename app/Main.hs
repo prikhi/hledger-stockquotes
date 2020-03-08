@@ -3,6 +3,7 @@
 module Main where
 
 import           Control.Monad                  ( forM_ )
+import           Data.Maybe                     ( fromMaybe )
 import           Data.Time                      ( Day
                                                 , formatTime
                                                 , defaultTimeLocale
@@ -10,7 +11,6 @@ import           Data.Time                      ( Day
 import           System.Console.CmdArgs         ( (&=)
                                                 , Data
                                                 , Typeable
-                                                , argPos
                                                 , typ
                                                 , def
                                                 , help
@@ -24,6 +24,7 @@ import           System.Console.CmdArgs         ( (&=)
                                                 , cmdArgs
                                                 , args
                                                 )
+import           System.Environment             ( lookupEnv )
 
 import           Lib
 import           Web.AlphaVantage               ( Config(..) )
@@ -34,8 +35,10 @@ import qualified Data.Text                     as T
 
 main :: IO ()
 main = do
-    Args {..} <- cmdArgs argSpec
-    let cfg = Config $ T.pack apiKey
+    Args {..}  <- cmdArgs argSpec
+    ledgerFile <- lookupEnv "LEDGER_FILE"
+    let journalFile = fromMaybe journalFile_ ledgerFile
+    let cfg         = Config $ T.pack apiKey
     (commodities, start, end) <- getCommoditiesAndDateRange
         (T.pack <$> excludedCurrencies)
         journalFile
@@ -61,7 +64,7 @@ data Args =
     Args
         { apiKey :: String
         , rateLimit :: Bool
-        , journalFile :: FilePath
+        , journalFile_ :: FilePath
         , outputFile :: FilePath
         , excludedCurrencies :: [String]
         , dryRun :: Bool
@@ -81,12 +84,21 @@ argSpec =
                                        &= name "no-rate-limit"
                                        &= name "n"
                                        ]
-            , journalFile        = def &= argPos 0 &= typ "JOURNAL_FILE"
-            , outputFile         = "prices.journal"
-                                   &= explicit
-                                   &= name "output-file"
-                                   &= name "o"
-                                   &= typ "OUTPUT_FILE"
+            , journalFile_       =
+                "~/.hledger.journal"
+                &= help
+                       "Journal file to read commodities from. Default: $LEDGER_FILE or ~/.hledger.journal"
+                &= explicit
+                &= name "journal-file"
+                &= name "f"
+                &= typ "FILE"
+            , outputFile         =
+                "prices.journal"
+                &= help "File to write prices into. Default: prices.journal"
+                &= explicit
+                &= name "output-file"
+                &= name "o"
+                &= typ "FILE"
             , excludedCurrencies = ["$", "USD"] &= args &= typ
                                        "EXCLUDED_CURRENCY ..."
             , dryRun = False &= explicit &= name "dry-run" &= name "d" &= help

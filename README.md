@@ -24,20 +24,25 @@ Then you can run the application:
 stack run -- --help
 ```
 
-Use the `-a` flag to pass in your API key and pass your journal file as
-positional arguments:
+Use the `-a` flag to pass in your API key and optionally pass the path to your
+journal file:
 
 ```
-stack run -- -a API_KEY accounting.journal
+stack run -- -a API_KEY -f accounting.journal
 ```
 
-The output file will default to `prices.journal`. You can customize this with
-the `-o` flag. Note that the contents of the output file will be overwritten if
-the file already exists.
+If you omit the `-f` flag, the journal file will fallback to the value of the
+`LEDGER_FILE` environmental variable. If `LEDGER_FILE` is undefined, a fallback
+of `~/.hledger.journal` will be used.
+
+The output file defaults to `prices.journal`. You can customize this with the
+`-o` flag. Note that the contents of the output file will be overwritten if the
+file already exists.
 
 By default, the application will limit itself to 5 API requests a minute, as
 specified by the AlphaVantage documentation. You can override this by using the
-`-n` flag.
+`-n` flag. You can have the application print the dates and commodities it will
+fetch by passing the `--dry-run` flag.
 
 
 ## Manual Builds
