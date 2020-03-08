@@ -36,12 +36,13 @@ import qualified Data.Map.Strict               as M
 import qualified Data.Text                     as T
 
 
-getCommoditiesAndDateRange :: FilePath -> IO ([CommoditySymbol], Day, Day)
-getCommoditiesAndDateRange journalPath = do
+getCommoditiesAndDateRange
+    :: [T.Text] -> FilePath -> IO ([CommoditySymbol], Day, Day)
+getCommoditiesAndDateRange excluded journalPath = do
     journal     <- either error id <$> readJournalFile definputopts journalPath
     currentTime <- getCurrentTime
     let commodities =
-            filter (`notElem` ["USD", "$", "AUTO"])
+            filter (`notElem` excluded)
                 $  M.keys (jcommodities journal)
                 <> M.keys (jinferredcommodities journal)
         dates       = map tdate $ jtxns journal
