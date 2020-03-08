@@ -13,7 +13,6 @@ import           System.Console.CmdArgs         ( (&=)
                                                 , Data
                                                 , Typeable
                                                 , typ
-                                                , def
                                                 , help
                                                 , enum
                                                 , ignore
@@ -26,6 +25,7 @@ import           System.Console.CmdArgs         ( (&=)
                                                 , args
                                                 )
 import           System.Environment             ( lookupEnv )
+import           System.Exit                    ( exitFailure )
 
 import           Lib
 import           Web.AlphaVantage               ( Config(..) )
@@ -36,11 +36,19 @@ import qualified Data.Text                     as T
 
 main :: IO ()
 main = do
-    Args {..}  <- cmdArgs argSpec
-    ledgerFile <- lookupEnv "LEDGER_FILE"
+    Args {..}      <- cmdArgs argSpec
+    journalFileEnv <- lookupEnv "LEDGER_FILE"
+    apiKeyEnv      <- lookupEnv "ALPHAVANTAGE_KEY"
+    apiKey         <- case asum [apiKey_, apiKeyEnv] of
+        Just k -> return k
+        Nothing ->
+            putStrLn
+                    "Error: Pass an AlphaVantage API Key with `-a` or $ALPHAVANTAGE_KEY."
+                >> exitFailure
+
     let journalFile =
-            fromMaybe "~/.hledger.journal" $ asum [journalFile_, ledgerFile]
-    let cfg = Config $ T.pack apiKey
+            fromMaybe "~/.hledger.journal" $ asum [journalFile_, journalFileEnv]
+        cfg = Config $ T.pack apiKey
     (commodities, start, end) <- getCommoditiesAndDateRange
         (T.pack <$> excludedCurrencies)
         journalFile
@@ -64,7 +72,7 @@ main = do
 
 data Args =
     Args
-        { apiKey :: String
+        { apiKey_ :: Maybe String
         , rateLimit :: Bool
         , journalFile_ :: Maybe FilePath
         , outputFile :: FilePath
@@ -75,7 +83,13 @@ data Args =
 argSpec :: Args
 argSpec =
     Args
-            { apiKey             = def &= help "Your AlphaVantage API key"
+            { apiKey_            =
+                Nothing
+                &= help "Your AlphaVantage API key. Default: $ALPHAVANTAGE_KEY"
+                &= explicit
+                &= name "api-key"
+                &= name "a"
+                &= typ "ALPHAVANTAGE_KEY"
             , rateLimit          = enum
                                        [ True
                                        &= help "Apply rate-limting for the API"

@@ -35,6 +35,9 @@ If you omit the `-f` flag, the journal file will fallback to the value of the
 `LEDGER_FILE` environmental variable. If `LEDGER_FILE` is undefined, a fallback
 of `~/.hledger.journal` will be used.
 
+You can omit the `-a` flag by setting the `ALPHAVANTAGE_KEY` environmental
+variable.
+
 The output file defaults to `prices.journal`. You can customize this with the
 `-o` flag. Note that the contents of the output file will be overwritten if the
 file already exists.
