@@ -53,7 +53,7 @@ getCommoditiesAndDateRange excluded journalPath = do
         maxDate = case maximumMay dates of
             Just d  -> d
             Nothing -> utctDay currentTime
-    return (L.nub commodities, minDate, maxDate)
+    return (L.sort $ L.nub commodities, minDate, maxDate)
 
 
 fetchPrices
