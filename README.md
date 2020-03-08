@@ -10,7 +10,8 @@ need a [free AlphaVantage API key](https://www.alphavantage.co/support/#api-key)
 
 ## Running
 
-This application is still in early development, so you'll need to clone this repository first:
+This application is still in early development, so you'll need to clone this
+repository first:
 
 ```
 git clone https://github.com/prikhi/hledger-stockquotes.git
@@ -23,15 +24,16 @@ Then you can run the application:
 stack run -- --help
 ```
 
-Use the `-a` flag to pass in your API key and pass your journal file & output
-file as positional arguments:
+Use the `-a` flag to pass in your API key and pass your journal file as
+positional arguments:
 
 ```
-stack run -- -a API_KEY accounting.journal prices.journal
+stack run -- -a API_KEY accounting.journal
 ```
 
-Note that the contents of the output file will be overwritten if the file
-already exists.
+The output file will default to `prices.journal`. You can customize this with
+the `-o` flag. Note that the contents of the output file will be overwritten if
+the file already exists.
 
 By default, the application will limit itself to 5 API requests a minute, as
 specified by the AlphaVantage documentation. You can override this by using the
@@ -46,6 +48,8 @@ For development, you can enable fast builds with file-watching,
 documentation-building, & test-running: `stack test --haddock --fast --file-watch`
 
 To build & open the documentation, run `stack haddock --open hledger-stockquotes`
+
+To install the executable to `~/.local/bin`, run `stack install`.
 
 
 ## TODO

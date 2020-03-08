@@ -62,7 +62,11 @@ argSpec =
                                        &= name "n"
                                        ]
             , journalFile        = def &= argPos 0 &= typ "JOURNAL_FILE"
-            , outputFile         = def &= argPos 1 &= typ "OUTPUT_FILE"
+            , outputFile         = "prices.journal"
+                                   &= explicit
+                                   &= name "output-file"
+                                   &= name "o"
+                                   &= typ "OUTPUT_FILE"
             , excludedCurrencies = ["$", "USD"] &= args &= typ
                                        "EXCLUDED_CURRENCY ..."
             }
