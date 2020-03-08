@@ -3,6 +3,7 @@
 module Main where
 
 import           Control.Monad                  ( forM_ )
+import           Data.Foldable                  ( asum )
 import           Data.Maybe                     ( fromMaybe )
 import           Data.Time                      ( Day
                                                 , formatTime
@@ -37,8 +38,9 @@ main :: IO ()
 main = do
     Args {..}  <- cmdArgs argSpec
     ledgerFile <- lookupEnv "LEDGER_FILE"
-    let journalFile = fromMaybe journalFile_ ledgerFile
-    let cfg         = Config $ T.pack apiKey
+    let journalFile =
+            fromMaybe "~/.hledger.journal" $ asum [journalFile_, ledgerFile]
+    let cfg = Config $ T.pack apiKey
     (commodities, start, end) <- getCommoditiesAndDateRange
         (T.pack <$> excludedCurrencies)
         journalFile
@@ -64,7 +66,7 @@ data Args =
     Args
         { apiKey :: String
         , rateLimit :: Bool
-        , journalFile_ :: FilePath
+        , journalFile_ :: Maybe FilePath
         , outputFile :: FilePath
         , excludedCurrencies :: [String]
         , dryRun :: Bool
@@ -85,7 +87,7 @@ argSpec =
                                        &= name "n"
                                        ]
             , journalFile_       =
-                "~/.hledger.journal"
+                Nothing
                 &= help
                        "Journal file to read commodities from. Default: $LEDGER_FILE or ~/.hledger.journal"
                 &= explicit
