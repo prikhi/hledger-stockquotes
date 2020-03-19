@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {- | Helper functions for the @hledger-stockquotes@ application.
+
 -}
 module Hledger.StockQuotes where
 
