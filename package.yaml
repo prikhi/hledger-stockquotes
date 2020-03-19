@@ -19,19 +19,29 @@ maintainer:
 copyright:
     2020 Pavan Rikhi
 category:
-    Finance
+    Finance, Console
 extra-source-files:
     - README.md
     - CHANGELOG.md
 
 
 synopsis:
-    Short, one-line summary of project here.
+    Generate HLedger Price Directives From Daily Stock Quotes.
 
 description: |
-    Longer description of package here.
+    @hledger-stockquotes@ is an addon for <https://hledger.org/ hledger> that
+    reads your journal file, pulls the historical stock prices for commodities,
+    and writes out a new journal file containing the respective price
+    directives.
 
-    Maybe include a simple usage example.
+    The <https://www.alphavantage.co/ AlphaVantage API> is used to fetch the
+    stock quotes and you will need a
+    <https://www.alphavantage.co/support/#api-key free API key> to use this
+    program.
+
+    You can install @hledger-stockquotes@ with Stack: @stack install --resolver
+    nightly hledger-stockquotes@. Then run @hledger-stockquotes --help@ to see
+    the usage instructions & all available options.
 
 
 ghc-options:
