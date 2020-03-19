@@ -27,7 +27,7 @@ import           System.Console.CmdArgs         ( (&=)
 import           System.Environment             ( lookupEnv )
 import           System.Exit                    ( exitFailure )
 
-import           Lib
+import           Hledger.StockQuotes
 import           Web.AlphaVantage               ( Config(..) )
 
 import qualified Data.ByteString.Lazy          as LBS

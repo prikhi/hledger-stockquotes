@@ -2,7 +2,7 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Lib where
+module Hledger.StockQuotes where
 
 import           Control.Exception              ( SomeException
                                                 , try
