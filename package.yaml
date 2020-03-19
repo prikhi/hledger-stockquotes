@@ -61,17 +61,17 @@ library:
     source-dirs:
         src
     dependencies:
-        - aeson
-        - bytestring
-        - containers
-        - hledger-lib
-        - req
-        - safe
-        - scientific
-        - split
-        - text
-        - time
-        - unordered-containers
+        - aeson >= 1 && < 2
+        - bytestring < 1
+        - containers < 1
+        - hledger-lib < 2
+        - req >= 3 && < 4
+        - safe >= 0.3.5 && < 1
+        - scientific < 1
+        - split < 1
+        - text < 2
+        - time < 2
+        - unordered-containers < 0.3
 
 executables:
     hledger-stockquotes:
@@ -85,10 +85,10 @@ executables:
             - -with-rtsopts "-N -T"
         dependencies:
             - hledger-stockquotes
-            - bytestring
-            - cmdargs
-            - text
-            - time
+            - bytestring < 1
+            - cmdargs >= 0.6 && < 1
+            - text < 2
+            - time < 2
 
 tests:
     hledger-stockquotes-test:
