@@ -2,6 +2,8 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{- | Helper functions for the @hledger-stockquotes@ application.
+-}
 module Hledger.StockQuotes where
 
 import           Control.Exception              ( SomeException
@@ -36,6 +38,9 @@ import qualified Data.Map.Strict               as M
 import qualified Data.Text                     as T
 
 
+-- | Given a list of Commodities to exclude and a Journal File, return the
+-- Commodities in the Journal and the minimum/maximum days from the
+-- Journal.
 getCommoditiesAndDateRange
     :: [T.Text] -> FilePath -> IO ([CommoditySymbol], Day, Day)
 getCommoditiesAndDateRange excluded journalPath = do
@@ -56,6 +61,10 @@ getCommoditiesAndDateRange excluded journalPath = do
     return (L.sort $ L.nub commodities, minDate, maxDate)
 
 
+-- | Fetch the Prices for the Commodities from the AlphaVantage API,
+-- limiting the returned prices between the given Days.
+--
+-- Note: Fetching errors are currently logged to stdout.
 fetchPrices
     :: Config
     -> [CommoditySymbol]
@@ -78,6 +87,10 @@ fetchPrices cfg symbols start end rateLimit = do
         else catMaybes <$> mapM action symbols
 
 
+-- | Perform the actions at a rate of 5 per second, then return all the
+-- results.
+--
+-- Note: Will log waiting times to stdout.
 rateLimitActions :: [IO a] -> IO [a]
 rateLimitActions a = case chunksOf 5 a of
     [     first]    -> sequence first
@@ -94,6 +107,8 @@ rateLimitActions a = case chunksOf 5 a of
         return results
 
 
+-- | Build the Price Directives for the Daily Prices of the given
+-- Commodities.
 makePriceDirectives :: [(CommoditySymbol, [(Day, Prices)])] -> LBS.ByteString
 makePriceDirectives = LBS.intercalate "\n\n" . map makeDirectives
   where

@@ -2,6 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{- | A minimal client for the AlphaVantage API.
+
+Currently only supports the @Daily Time Series@ endpoint.
+
+-}
 module Web.AlphaVantage
     ( Config(..)
     , Prices(..)
@@ -37,12 +42,15 @@ import qualified Data.HashMap.Strict           as HM
 import qualified Data.List                     as L
 
 
+-- | Configuration for the AlphaVantage API Client.
 newtype Config =
     Config
         { cApiKey :: T.Text
+        -- ^ Your API Key.
         } deriving (Show, Read, Eq,  Generic)
 
 
+-- | List of Daily Prices for a Stock.
 newtype PriceList =
     PriceList
         { fromPriceList :: [(Day, Prices)]
@@ -57,6 +65,7 @@ instance FromJSON PriceList where
                      daysAndPrices
         where parseDay = parseTimeM True defaultTimeLocale "%F"
 
+-- | The Single-Day Price Quotes & Volume for a Stock,.
 data Prices =
     Prices
         { pOpen :: Scientific
@@ -82,6 +91,8 @@ instance FromJSON Prices where
                 Nothing -> fail $ "Could not read: " ++ val
 
 
+-- | Fetch the Daily Prices for a Stock, returning only the prices between
+-- the two given dates.
 getDailyPrices :: Config -> T.Text -> Day -> Day -> IO [(Day, Prices)]
 getDailyPrices cfg symbol startDay endDay = do
     resp <- runReq defaultHttpConfig $ req
