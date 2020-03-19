@@ -9,11 +9,13 @@ import           Data.Time                      ( Day
                                                 , formatTime
                                                 , defaultTimeLocale
                                                 )
+import           Data.Version                   ( showVersion )
 import           System.Console.CmdArgs         ( (&=)
                                                 , Data
                                                 , Typeable
                                                 , typ
                                                 , help
+                                                , details
                                                 , enum
                                                 , ignore
                                                 , explicit
@@ -29,6 +31,7 @@ import           System.Exit                    ( exitFailure )
 
 import           Hledger.StockQuotes
 import           Web.AlphaVantage               ( Config(..) )
+import           Paths_hledger_stockquotes      ( version )
 
 import qualified Data.ByteString.Lazy          as LBS
 import qualified Data.Text                     as T
@@ -120,6 +123,27 @@ argSpec =
             , dryRun = False &= explicit &= name "dry-run" &= name "d" &= help
                 "Print the commodities and dates that would be processed."
             }
-        &= summary "hledger-stockquotes, v0.1.0.0"
+        &= summary
+               (  "hledger-stockquotes v"
+               ++ showVersion version
+               ++ ", Pavan Rikhi 2020"
+               )
         &= program "hledger-stockquotes"
         &= helpArg [name "h"]
+        &= help "Generate HLedger Price Directives From Daily Stock Quotes."
+        &= details
+               [ "hledger-stockquotes reads a HLedger journal file, queries the "
+               , "AlphaVantage stock quote API, and writes a new journal file "
+               , "containing price directives for each commodity."
+               , ""
+               , "Warning: the output file will always be overwritten with the new "
+               , "price directives. We currently do not support appending to the "
+               , "output file."
+               , ""
+               , "If no `-f` flag is passed and the LEDGER_FILE environmental "
+               , "variable is set, the program will use that as the default "
+               , "HLedger file. Otherwise ~/.hledger.journal will be used."
+               , ""
+               , "Instead of passing the `-a` flag with your AlphaVantage API key, "
+               , "you can set the ALPHAVANTAGE_KEY environmental variable instead."
+               ]
