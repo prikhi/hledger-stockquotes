@@ -60,16 +60,6 @@ To build & open the documentation, run `stack haddock --open hledger-stockquotes
 To install the executable to `~/.local/bin`, run `stack install`.
 
 
-## TODO
-
-* Fix dates that are outputted. Currently only outputs dates that there are
-  journal entries for.
-* Allow appending to the output file, only inserting new prices.
-* CLI flag to set price period to first day of earliest year to last day of
-  latest year or yesterday/today if latest year is this year.
-* Replace `-n` flag with one that lets you set the requests per minute.
-
-
 ## LICENSE
 
 BSD-3
