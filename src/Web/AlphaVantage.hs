@@ -11,8 +11,7 @@ module Web.AlphaVantage
     ( Config(..)
     , Prices(..)
     , getDailyPrices
-    )
-where
+    ) where
 
 import           Data.Aeson                     ( (.:)
                                                 , FromJSON(..)
@@ -20,26 +19,26 @@ import           Data.Aeson                     ( (.:)
                                                 )
 import           Data.Scientific                ( Scientific )
 import           Data.Time                      ( Day
-                                                , parseTimeM
                                                 , defaultTimeLocale
+                                                , parseTimeM
                                                 )
 import           GHC.Generics                   ( Generic )
 import           Network.HTTP.Req               ( (/~)
                                                 , (=:)
                                                 , GET(..)
                                                 , NoReqBody(..)
-                                                , runReq
-                                                , req
                                                 , defaultHttpConfig
                                                 , https
                                                 , jsonResponse
+                                                , req
                                                 , responseBody
+                                                , runReq
                                                 )
 import           Text.Read                      ( readMaybe )
 
-import qualified Data.Text                     as T
 import qualified Data.HashMap.Strict           as HM
 import qualified Data.List                     as L
+import qualified Data.Text                     as T
 
 
 -- | Configuration for the AlphaVantage API Client.
@@ -66,14 +65,14 @@ instance FromJSON PriceList where
         where parseDay = parseTimeM True defaultTimeLocale "%F"
 
 -- | The Single-Day Price Quotes & Volume for a Stock,.
-data Prices =
-    Prices
-        { pOpen :: Scientific
-        , pHigh :: Scientific
-        , pLow :: Scientific
-        , pClose :: Scientific
-        , pVolume :: Integer
-        } deriving (Show, Read, Eq, Generic)
+data Prices = Prices
+    { pOpen   :: Scientific
+    , pHigh   :: Scientific
+    , pLow    :: Scientific
+    , pClose  :: Scientific
+    , pVolume :: Integer
+    }
+    deriving (Show, Read, Eq, Generic)
 
 instance FromJSON Prices where
     parseJSON = withObject "Prices" $ \v -> do

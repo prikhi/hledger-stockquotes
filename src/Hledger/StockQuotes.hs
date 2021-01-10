@@ -7,24 +7,24 @@
 -}
 module Hledger.StockQuotes where
 
+import           Control.Concurrent             ( threadDelay )
 import           Control.Exception              ( SomeException
                                                 , try
                                                 )
-import           Control.Concurrent             ( threadDelay )
 import           Data.List.Split                ( chunksOf )
 import           Data.Maybe                     ( catMaybes )
+import           Data.Text.Encoding             ( encodeUtf8 )
 import           Data.Time                      ( Day
                                                 , UTCTime(utctDay)
-                                                , formatTime
                                                 , defaultTimeLocale
-                                                , getCurrentTime
+                                                , formatTime
                                                 , fromGregorian
+                                                , getCurrentTime
                                                 , toGregorian
                                                 )
-import           Data.Text.Encoding             ( encodeUtf8 )
 import           Hledger
-import           Safe.Foldable                  ( minimumMay
-                                                , maximumMay
+import           Safe.Foldable                  ( maximumMay
+                                                , minimumMay
                                                 )
 
 import           Web.AlphaVantage               ( Config

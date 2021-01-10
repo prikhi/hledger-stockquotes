@@ -6,32 +6,32 @@ import           Control.Monad                  ( forM_ )
 import           Data.Foldable                  ( asum )
 import           Data.Maybe                     ( fromMaybe )
 import           Data.Time                      ( Day
-                                                , formatTime
                                                 , defaultTimeLocale
+                                                , formatTime
                                                 )
 import           Data.Version                   ( showVersion )
 import           System.Console.CmdArgs         ( (&=)
                                                 , Data
                                                 , Typeable
-                                                , typ
-                                                , help
+                                                , args
+                                                , cmdArgs
                                                 , details
                                                 , enum
-                                                , ignore
                                                 , explicit
-                                                , name
-                                                , summary
-                                                , program
+                                                , help
                                                 , helpArg
-                                                , cmdArgs
-                                                , args
+                                                , ignore
+                                                , name
+                                                , program
+                                                , summary
+                                                , typ
                                                 )
 import           System.Environment             ( lookupEnv )
 import           System.Exit                    ( exitFailure )
 
 import           Hledger.StockQuotes
-import           Web.AlphaVantage               ( Config(..) )
 import           Paths_hledger_stockquotes      ( version )
+import           Web.AlphaVantage               ( Config(..) )
 
 import qualified Data.ByteString.Lazy          as LBS
 import qualified Data.Text                     as T
@@ -73,15 +73,15 @@ main = do
     showDate = formatTime defaultTimeLocale "%Y-%m-%d"
 
 
-data Args =
-    Args
-        { apiKey_ :: Maybe String
-        , rateLimit :: Bool
-        , journalFile_ :: Maybe FilePath
-        , outputFile :: FilePath
-        , excludedCurrencies :: [String]
-        , dryRun :: Bool
-        } deriving (Data, Typeable, Show, Eq)
+data Args = Args
+    { apiKey_            :: Maybe String
+    , rateLimit          :: Bool
+    , journalFile_       :: Maybe FilePath
+    , outputFile         :: FilePath
+    , excludedCurrencies :: [String]
+    , dryRun             :: Bool
+    }
+    deriving (Data, Typeable, Show, Eq)
 
 argSpec :: Args
 argSpec =
