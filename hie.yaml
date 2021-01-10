@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "hledger-stockquotes:lib"
+
+    - path: "./app/Main.hs"
+      component: "hledger-stockquotes:exe:hledger-stockquotes"
+
+    - path: "./app/Paths_hledger_stockquotes.hs"
+      component: "hledger-stockquotes:exe:hledger-stockquotes"
+
+    - path: "./tests"
+      component: "hledger-stockquotes:test:hledger-stockquotes-test"
