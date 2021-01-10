@@ -111,7 +111,7 @@ rateLimitActions a = case chunksOf 5 a of
 -- | Build the Price Directives for the Daily Prices of the given
 -- Commodities.
 makePriceDirectives :: [(CommoditySymbol, [(Day, Prices)])] -> LBS.ByteString
-makePriceDirectives = LBS.intercalate "\n\n" . map makeDirectives
+makePriceDirectives = (<> "\n") . LBS.intercalate "\n\n" . map makeDirectives
   where
     makeDirectives :: (CommoditySymbol, [(Day, Prices)]) -> LBS.ByteString
     makeDirectives (symbol, prices) =
