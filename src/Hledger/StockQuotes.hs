@@ -27,6 +27,9 @@ import           Hledger
 import           Safe.Foldable                  ( maximumMay
                                                 , minimumMay
                                                 )
+import           System.IO                      ( hPutStrLn
+                                                , stderr
+                                                )
 
 import           Web.AlphaVantage               ( AlphaVantageResponse(..)
                                                 , Config
@@ -83,7 +86,7 @@ fetchPrices cfg symbols start end rateLimit = do
     action :: CommoditySymbol -> IO (Maybe (CommoditySymbol, [(Day, Prices)]))
     action symbol = try (getDailyPrices cfg symbol start end) >>= \case
         Left (e :: SomeException) -> do
-            putStrLn
+            logError
                 $  "Error Fetching Prices for Symbol `"
                 <> T.unpack symbol
                 <> "`:\n\t"
@@ -92,7 +95,7 @@ fetchPrices cfg symbols start end rateLimit = do
             return Nothing
 
         Right (ApiError note) -> do
-            putStrLn
+            logError
                 $  "Error Fetching Prices for Symbol `"
                 <> T.unpack symbol
                 <> "`:\n\t"
@@ -101,6 +104,8 @@ fetchPrices cfg symbols start end rateLimit = do
             return Nothing
 
         Right (ApiResponse prices) -> return $ Just (symbol, prices)
+    logError :: String -> IO ()
+    logError = hPutStrLn stderr
 
 
 -- | Perform the actions at a rate of 5 per second, then return all the

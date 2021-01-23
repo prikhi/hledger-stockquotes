@@ -28,6 +28,9 @@ import           System.Console.CmdArgs         ( (&=)
                                                 )
 import           System.Environment             ( lookupEnv )
 import           System.Exit                    ( exitFailure )
+import           System.IO                      ( hPutStrLn
+                                                , stderr
+                                                )
 
 import           Hledger.StockQuotes
 import           Paths_hledger_stockquotes      ( version )
@@ -45,7 +48,7 @@ main = do
     apiKey         <- case asum [apiKey_, apiKeyEnv] of
         Just k -> return k
         Nothing ->
-            putStrLn
+            logError
                     "Error: Pass an AlphaVantage API Key with `-a` or $ALPHAVANTAGE_KEY."
                 >> exitFailure
 
@@ -71,6 +74,8 @@ main = do
   where
     showDate :: Day -> String
     showDate = formatTime defaultTimeLocale "%Y-%m-%d"
+    logError :: String -> IO ()
+    logError = hPutStrLn stderr
 
 
 data Args = Args

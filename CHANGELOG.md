@@ -2,6 +2,7 @@
 
 ## master
 
+* Log API errors to `stderr` instead of `stdout`.
 * Improve error messages when the AlphaVantage API returns a
   rate-limit-exceeded error.
 * Improve documentation in README & `--help` flag.
