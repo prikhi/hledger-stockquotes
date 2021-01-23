@@ -2,6 +2,9 @@
 
 ## master
 
+
+## v0.1.1.0
+
 * Don't write out a journal file if no prices were successfully fetched.
 * Log API errors to `stderr` instead of `stdout`.
 * Improve error messages when the AlphaVantage API returns a
