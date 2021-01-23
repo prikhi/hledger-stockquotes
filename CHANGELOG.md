@@ -2,6 +2,9 @@
 
 ## master
 
+* Improve error messages when the AlphaVantage API returns a
+  rate-limit-exceeded error.
+* Improve documentation in README & `--help` flag.
 * Add trailing newline to generated files.
 
 

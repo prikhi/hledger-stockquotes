@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -9,12 +10,15 @@ Currently only supports the @Daily Time Series@ endpoint.
 -}
 module Web.AlphaVantage
     ( Config(..)
+    , AlphaVantageResponse(..)
     , Prices(..)
     , getDailyPrices
     ) where
 
 import           Data.Aeson                     ( (.:)
+                                                , (.:?)
                                                 , FromJSON(..)
+                                                , Value(Object)
                                                 , withObject
                                                 )
 import           Data.Scientific                ( Scientific )
@@ -48,6 +52,21 @@ newtype Config =
         -- ^ Your API Key.
         } deriving (Show, Read, Eq,  Generic)
 
+-- | Wrapper type enumerating between successful responses and error
+-- responses with notes.
+data AlphaVantageResponse a
+    = ApiResponse a
+    | ApiError T.Text
+    deriving (Show, Read, Eq, Generic, Functor)
+
+-- | Check for errors by attempting to parse a `Note` field. If one does
+-- not exist, parse the inner type.
+instance FromJSON a => FromJSON (AlphaVantageResponse a) where
+    parseJSON = withObject "AlphaVantageResponse" $ \v -> do
+        mbErrorNote <- v .:? "Note"
+        case mbErrorNote of
+            Nothing   -> ApiResponse <$> parseJSON (Object v)
+            Just note -> return $ ApiError note
 
 -- | List of Daily Prices for a Stock.
 newtype PriceList =
@@ -87,12 +106,17 @@ instance FromJSON Prices where
             val <- parser
             case readMaybe val of
                 Just x  -> return x
-                Nothing -> fail $ "Could not read: " ++ val
+                Nothing -> fail $ "Could not parse number: " ++ val
 
 
 -- | Fetch the Daily Prices for a Stock, returning only the prices between
 -- the two given dates.
-getDailyPrices :: Config -> T.Text -> Day -> Day -> IO [(Day, Prices)]
+getDailyPrices
+    :: Config
+    -> T.Text
+    -> Day
+    -> Day
+    -> IO (AlphaVantageResponse [(Day, Prices)])
 getDailyPrices cfg symbol startDay endDay = do
     resp <- runReq defaultHttpConfig $ req
         GET
@@ -110,9 +134,11 @@ getDailyPrices cfg symbol startDay endDay = do
         <> "apikey"
         =: cApiKey cfg
         )
-    return
-        . takeWhile ((<= endDay) . fst)
-        . dropWhile ((< startDay) . fst)
-        . L.sortOn fst
-        . fromPriceList
-        $ responseBody resp
+    return . fmap filterByDate $ responseBody resp
+  where
+    filterByDate :: PriceList -> [(Day, Prices)]
+    filterByDate =
+        takeWhile ((<= endDay) . fst)
+            . dropWhile ((< startDay) . fst)
+            . L.sortOn fst
+            . fromPriceList

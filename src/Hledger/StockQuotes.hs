@@ -9,6 +9,7 @@ module Hledger.StockQuotes where
 
 import           Control.Concurrent             ( threadDelay )
 import           Control.Exception              ( SomeException
+                                                , displayException
                                                 , try
                                                 )
 import           Data.List.Split                ( chunksOf )
@@ -27,7 +28,8 @@ import           Safe.Foldable                  ( maximumMay
                                                 , minimumMay
                                                 )
 
-import           Web.AlphaVantage               ( Config
+import           Web.AlphaVantage               ( AlphaVantageResponse(..)
+                                                , Config
                                                 , Prices(..)
                                                 , getDailyPrices
                                                 )
@@ -74,18 +76,31 @@ fetchPrices
     -> Bool
     -> IO [(CommoditySymbol, [(Day, Prices)])]
 fetchPrices cfg symbols start end rateLimit = do
-    let action symbol = try (getDailyPrices cfg symbol start end) >>= \case
-            Left (e :: SomeException) -> do
-                putStrLn
-                    $  "Error Fetching Symbol `"
-                    <> T.unpack symbol
-                    <> "`: "
-                    ++ show e
-                return Nothing
-            Right prices -> return $ Just (symbol, prices)
     if rateLimit
         then fmap catMaybes $ rateLimitActions $ map action symbols
         else catMaybes <$> mapM action symbols
+  where
+    action :: CommoditySymbol -> IO (Maybe (CommoditySymbol, [(Day, Prices)]))
+    action symbol = try (getDailyPrices cfg symbol start end) >>= \case
+        Left (e :: SomeException) -> do
+            putStrLn
+                $  "Error Fetching Prices for Symbol `"
+                <> T.unpack symbol
+                <> "`:\n\t"
+                ++ displayException e
+                ++ "\n"
+            return Nothing
+
+        Right (ApiError note) -> do
+            putStrLn
+                $  "Error Fetching Prices for Symbol `"
+                <> T.unpack symbol
+                <> "`:\n\t"
+                <> T.unpack note
+                <> "\n"
+            return Nothing
+
+        Right (ApiResponse prices) -> return $ Just (symbol, prices)
 
 
 -- | Perform the actions at a rate of 5 per second, then return all the
