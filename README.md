@@ -26,7 +26,7 @@ variable or use the `-a` switch to specify your AlphaVantage key:
 hledger-stockquotes -a MY_API_KEY -f accounting.journal
 ```
 
-This will print out price directive to a `prices.journal` file. 
+This will print out price directive to a `prices.journal` file.
 
 
 ### Custom Output Files
@@ -59,7 +59,7 @@ directive(`D`).
 
 ### API Limits
 
-AlphaVantage has an API request limit of 5 requests per limit.
+AlphaVantage has an API request limit of 5 requests per minute.
 `hledger-stockquotes` enforces this limit on a per-command basis. A single run
 will fetch 5 price histories, wait 60 seconds, fetch 5 more, etc. Running
 multiple `hledger-stockquotes` commands in sequence will not enforce this limit
