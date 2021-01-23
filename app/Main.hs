@@ -61,7 +61,10 @@ main = do
     if not dryRun
         then do
             prices <- fetchPrices cfg commodities start end rateLimit
-            LBS.writeFile outputFile $ makePriceDirectives prices
+            if null prices
+                then logError
+                    "Error: No price directives were able to be fetched."
+                else LBS.writeFile outputFile $ makePriceDirectives prices
         else do
             putStrLn
                 $  "Querying from "
