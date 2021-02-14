@@ -85,10 +85,15 @@ executables:
             - -with-rtsopts "-N -T"
         dependencies:
             - hledger-stockquotes
+            - aeson >= 1 && < 2
             - bytestring < 1
             - cmdargs >= 0.6 && < 1
+            - directory < 2
+            - safe-exceptions
             - text < 2
             - time < 2
+            - xdg-basedir < 1
+            - yaml < 1
 
 tests:
     hledger-stockquotes-test:

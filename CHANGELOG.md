@@ -2,6 +2,9 @@
 
 ## master
 
+* Add support for config file at `$XDG_CONFIG_HOME/hstockquotes/config.yaml`
+  with `api-key`, `exclude`, & `rate-limit` options.
+
 
 ## v0.1.1.0
 

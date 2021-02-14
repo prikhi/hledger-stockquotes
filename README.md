@@ -69,6 +69,26 @@ the `--dry-run` flag. This will simply print out the commodities and date
 ranges that would be queried instead of making requests to AlphaVantage.
 
 
+### Configuration File
+
+`hledger-stockquotes` can also be configured via a YAML file at
+`$XDG_CONFIG_HOME/hledger-stockquotes/config.yaml`(`$XDG_CONFIG_HOME` is
+usually `~/.config/`).
+
+You can set the `api-key`, `rate-limit`, & `exclude` options via this file:
+
+```yaml
+rate-limit: false
+api-key: DeAdBeEf9001
+exclude:
+    - USD
+    - AUTO
+    - BTC
+```
+
+CLI flags & environmental variables will override config file settings.
+
+
 ### Additional Documentation
 
 The `--help` flag provides more thorough documentation on all available flags:
