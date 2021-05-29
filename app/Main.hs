@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -47,6 +48,7 @@ import           System.Exit                    ( exitFailure )
 import           System.IO                      ( hPutStrLn
                                                 , stderr
                                                 )
+import           Text.RawString.QQ              ( r )
 
 import           Hledger.StockQuotes
 import           Paths_hledger_stockquotes      ( version )
@@ -253,95 +255,97 @@ argSpec =
         &= program "hledger-stockquotes"
         &= helpArg [name "h"]
         &= help "Generate HLedger Price Directives From Daily Stock Quotes."
-        &= details
-               [ "hledger-stockquotes reads a HLedger journal file, queries the "
-               , "AlphaVantage stock quote API, and writes a new journal file "
-               , "containing price directives for each commodity."
-               , ""
-               , ""
-               , "DESCRIPTION"
-               , ""
-               , "By default, we find all non-USD commodities in your "
-               , "journal file and query AlphaVantage for their stock prices "
-               , "over the date range used in the journal file. Currently, we "
-               , "only support public U.S. equities & cryptocurrencies & do "
-               , "not call out to AlphaVantage's FOREX API routes. "
-               , "If you have commodities that are not supported by AlphaVantage, "
-               , "hledger-stockquotes will output an error when attempting to "
-               , "processing them. To avoid processing of unsupported currencies, "
-               , "you can pass in any commodities to exclude as arguments."
-               , "If you use the default commodity directive in your journal file, "
-               , "hledger will include an `AUTO` commodity when parsing your journal."
-               , ""
-               , ""
-               , "CRYPTOCURRENCIES"
-               , ""
-               , "Use the `-c` flag to specify which commodities are cryptocurrencies. "
-               , "You can pass the flag multiple times or specify them as a "
-               , "comma-separated list. For the listed cryptocurrencies, we will "
-               , "hit AlphaVantage's Daily Crypto Prices API route instead of the "
-               , "normal Stock Prices route."
-               , ""
-               , ""
-               , "API LIMITS"
-               , ""
-               , "AlphaVantage's API limits users to 5 requests per minute. We respect "
-               , "this limit by waiting for 60 seconds after every 5 commities we process. "
-               , "You can ignore the rate-limiting by using the `-n` flag, but "
-               , "requests are more likely to fail. You can use the `-d` flag to print "
-               , "out the dates & currencies that we will fetch to avoid any unecessary "
-               , "processing or API requests."
-               , ""
-               , ""
-               , "OUTPUT FILE"
-               , ""
-               , "You can use the `-o` flag to set the file we will write the "
-               , "generated price directives into. By default, we write to "
-               , "`prices.journal`."
-               , ""
-               , "Warning: the output file will always be overwritten with the new "
-               , "price directives. We currently do not support appending to the "
-               , "output file."
-               , ""
-               , ""
-               , "ENVIRONMENTAL VARIABLES"
-               , ""
-               , "If no `-f` flag is passed and the LEDGER_FILE environmental "
-               , "variable is set, the program will use that as the default "
-               , "HLedger file. Otherwise ~/.hledger.journal will be used."
-               , ""
-               , "Instead of passing the `-a` flag with your AlphaVantage API key, "
-               , "you can set the ALPHAVANTAGE_KEY environmental variable instead."
-               , ""
-               , ""
-               , "CONFIGURATION FILE"
-               , ""
-               , "If you have common options you constantly pass to the application, "
-               , "you can specify them in a YAML configuration file. We attempt "
-               , "to parse a configuration file in $XDG_CONFIG_HOME/hledger-stockquotes/config.yaml. "
-               , "It currently supports the following top-level keys: "
-               , ""
-               , "- `api-key`:          (string) Your AlphaVantage API Key"
-               , "- `cryptocurrencies`: (list of string) Cryptocurrencies to Fetch"
-               , "- `exclude`:          (list of strings) Currencies to Exclude"
-               , "- `rate-limit`:       (bool) Obey AlphaVantage's Rate Limit"
-               , ""
-               , "Environmental variables will overide any config file options, "
-               , "and CLI flags will override both environmental variables & "
-               , "config file options."
-               , ""
-               , ""
-               , "USAGE EXAMPLES"
-               , ""
-               , "Fetch prices for all commodities in the default journal file:"
-               , "    hledger-stockquotes -a <your-api-key>"
-               , ""
-               , "Output prices into a custom journal file:"
-               , "    hledger-stockquotes -a <your-api-key> -o prices/2021.journal"
-               , ""
-               , "Fetch prices for all commodities, including Bitcoin:"
-               , "    hledger-stockquotes -a <your-api-key> -c BTC"
-               , ""
-               , "Ignore the default, foreign, & crypto commodities:"
-               , "    hledger-stockquotes -a <your-api-key> AUTO BTC ETH EUR"
-               ]
+        &= details programDetails
+
+
+programDetails :: [String]
+programDetails = lines [r|
+hledger-stockquotes reads a HLedger journal file, queries the AlphaVantage
+stock quote API, and writes a new journal file containing price directives
+for each commodity.
+
+
+DESCRIPTION
+
+By default, we find all non-USD commodities in your journal file and query
+AlphaVantage for their stock prices over the date range used in the journal
+file. Currently, we only support public U.S. equities & cryptocurrencies
+& do not call out to AlphaVantage's FOREX API routes.
+
+If you have commodities that are not supported by AlphaVantage,
+hledger-stockquotes will output an error when attempting to processing
+them. To avoid processing of unsupported currencies, you can pass in any
+commodities to exclude as arguments. If you use the default commodity
+directive in your journal file, hledger will include an `AUTO` commodity
+when parsing your journal.
+
+
+CRYPTOCURRENCIES
+
+We support feching daily closing prices for all cryptocurrencies supported
+by AlphaVantage. Use the `-c` flag to specify which commodities are
+cryptocurrencies. You can pass the flag multiple times or specify them as
+a comma-separated list. For the listed cryptocurrencies, we will hit
+AlphaVantage's Daily Crypto Prices API route instead of the normal Stock
+Prices route.
+
+
+API LIMITS
+
+AlphaVantage's API limits users to 5 requests per minute. We respect this
+limit by waiting for 60 seconds after every 5 commities we process. You
+can ignore the rate-limiting by using the `-n` flag, but requests are more
+likely to fail. You can use the `-d` flag to print out the dates
+& currencies that we will fetch to avoid any unecessary processing or API
+requests.
+
+
+OUTPUT FILE
+
+You can use the `-o` flag to set the file we will write the generated price
+directives into. By default, we write to `prices.journal`.
+
+Warning: the output file will always be overwritten with the new price
+directives. We currently do not support appending to the output file.
+
+
+ENVIRONMENTAL VARIABLES
+
+If no `-f` flag is passed and the LEDGER_FILE environmental variable is
+set, the program will use that as the default HLedger file. Otherwise
+~/.hledger.journal will be used.
+
+Instead of passing the `-a` flag with your AlphaVantage API key, you can
+set the ALPHAVANTAGE_KEY environmental variable instead.
+
+
+CONFIGURATION FILE
+
+If you have common options you constantly pass to the application, you can
+specify them in a YAML configuration file. We attempt to parse
+a configuration file in $XDG_CONFIG_HOME/hledger-stockquotes/config.yaml.
+It currently supports the following top-level keys:
+
+- `api-key`:          (string) Your AlphaVantage API Key
+- `cryptocurrencies`: (list of string) Cryptocurrencies to Fetch
+- `exclude`:          (list of strings) Currencies to Exclude
+- `rate-limit`:       (bool) Obey AlphaVantage's Rate Limit
+
+Environmental variables will overide any config file options, and CLI flags
+will override both environmental variables & config file options.
+
+
+USAGE EXAMPLES
+
+Fetch prices for all commodities in the default journal file:
+    hledger-stockquotes -a <your-api-key>
+
+Output prices into a custom journal file:
+    hledger-stockquotes -a <your-api-key> -o prices/2021.journal
+
+Fetch prices for all commodities, including Bitcoin:
+    hledger-stockquotes -a <your-api-key> -c BTC
+
+Ignore the default, foreign, & crypto commodities:
+    hledger-stockquotes -a <your-api-key> AUTO BTC ETH EUR
+|]

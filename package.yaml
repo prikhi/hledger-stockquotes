@@ -89,6 +89,7 @@ executables:
             - bytestring < 1
             - cmdargs >= 0.6 && < 1
             - directory < 2
+            - raw-strings-qq < 2
             - safe-exceptions
             - text < 2
             - time < 2
