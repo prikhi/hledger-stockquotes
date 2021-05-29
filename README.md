@@ -22,7 +22,7 @@ and `LEDGER_FILE` locations.
 At the bare minimum, you need to set an `ALPHAVANTAGE_KEY` environmental
 variable or use the `-a` switch to specify your AlphaVantage key:
 
-```
+```sh
 hledger-stockquotes -a MY_API_KEY -f accounting.journal
 ```
 
@@ -33,7 +33,7 @@ This will print out price directive to a `prices.journal` file.
 
 The output file can be set with the `-o` flag:
 
-```
+```sh
 hledger-stockquotes -a MY_API_KEY -o prices/2021.journal
 ```
 
@@ -49,7 +49,7 @@ routes, so if you have those commodities, `stockquotes` will print an error
 when fetching them. You can exclude commodities by passing them as arguments to
 `hledger-stockquotes`:
 
-```
+```sh
 hledger-stockquotes -a MY_API_KEY AUTO TA_VFFVX
 ```
 
@@ -93,7 +93,7 @@ CLI flags & environmental variables will override config file settings.
 
 The `--help` flag provides more thorough documentation on all available flags:
 
-```
+```sh
 hledger-stockquotes --help
 ```
 
@@ -103,7 +103,7 @@ hledger-stockquotes --help
 This project has not yet been packaged for any OSes or Linux distributions, so
 you'll have to clone this repository & compile/install the code yourself:
 
-```
+```sh
 git clone https://github.com/prikhi/hledger-stockquotes.git
 cd hledger-stockquotes
 stack install
@@ -113,14 +113,14 @@ This will put the `hledger-stockquotes` exe into your `~/.local/bin/`
 directory. Ensure that the directory is included in your `PATH` environmental
 variable. Then you can run the application:
 
-```
+```sh
 hledger-stockquotes --help
 ```
 
 Since the executable has the `hledger-` prefix, you can also use it with the
 `hledger` command:
 
-```
+```sh
 hledger stockquotes -- --help
 ```
 
