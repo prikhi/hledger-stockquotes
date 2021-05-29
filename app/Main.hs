@@ -13,6 +13,7 @@ import           Data.Aeson                     ( (.:?)
                                                 , FromJSON(..)
                                                 , withObject
                                                 )
+import           Data.List                      ( partition )
 import           Data.Maybe                     ( fromMaybe )
 import           Data.Time                      ( Day
                                                 , defaultTimeLocale
@@ -49,7 +50,7 @@ import           System.IO                      ( hPutStrLn
 
 import           Hledger.StockQuotes
 import           Paths_hledger_stockquotes      ( version )
-import           Web.AlphaVantage               ( Config(..) )
+import           Web.AlphaVantage
 
 import qualified Data.ByteString.Lazy          as LBS
 import qualified Data.Text                     as T
@@ -66,7 +67,12 @@ main = do
         journalFile
     if not dryRun
         then do
-            prices <- fetchPrices cfg commodities start end rateLimit
+            prices <- fetchPrices cfg
+                                  commodities
+                                  cryptoCurrencies
+                                  start
+                                  end
+                                  rateLimit
             if null prices
                 then logError "No price directives were able to be fetched."
                 else LBS.writeFile outputFile $ makePriceDirectives prices
@@ -76,9 +82,12 @@ main = do
                 <> showDate start
                 <> " to "
                 <> showDate end
-            putStrLn "Querying Commodities:"
-            forM_ commodities
-                $ \commodity -> putStrLn $ "\t" <> T.unpack commodity
+            let (stocks, cryptos) =
+                    partition (`notElem` cryptoCurrencies) commodities
+            putStrLn "Querying Stocks:"
+            forM_ stocks $ \commodity -> putStrLn $ "\t" <> T.unpack commodity
+            putStrLn "Querying CryptoCurrencies:"
+            forM_ cryptos $ \commodity -> putStrLn $ "\t" <> T.unpack commodity
   where
     showDate :: Day -> String
     showDate = formatTime defaultTimeLocale "%Y-%m-%d"
@@ -97,6 +106,7 @@ data AppConfig = AppConfig
     , journalFile        :: FilePath
     , outputFile         :: FilePath
     , excludedCurrencies :: [String]
+    , cryptoCurrencies   :: [T.Text]
     , dryRun             :: Bool
     }
     deriving (Show, Eq)
@@ -127,6 +137,9 @@ mergeArgsEnvCfg ConfigFile {..} Args {..} = do
             if argExcludedCurrencies == defaultExcludedCurrencies
                 then fromMaybe defaultExcludedCurrencies cfgExcludedCurrencies
                 else argExcludedCurrencies
+        cryptoCurrencies = if null argCryptoCurrencies
+            then maybe [] (map T.pack) cfgCryptoCurrencies
+            else concatMap (T.splitOn "," . T.pack) argCryptoCurrencies
         outputFile = argOutputFile
         dryRun     = argDryRun
     return AppConfig { .. }
@@ -136,6 +149,7 @@ data ConfigFile = ConfigFile
     { cfgApiKey             :: Maybe String
     , cfgRateLimit          :: Maybe Bool
     , cfgExcludedCurrencies :: Maybe [String]
+    , cfgCryptoCurrencies   :: Maybe [String]
     }
     deriving (Show, Eq)
 
@@ -144,6 +158,7 @@ instance FromJSON ConfigFile where
         cfgApiKey             <- o .:? "api-key"
         cfgRateLimit          <- o .:? "rate-limit"
         cfgExcludedCurrencies <- o .:? "exclude"
+        cfgCryptoCurrencies   <- o .:? "cryptocurrencies"
         return ConfigFile { .. }
 
 loadConfigFile :: IO ConfigFile
@@ -160,7 +175,7 @@ loadConfigFile = do
         else return defaultConfig
   where
     defaultConfig :: ConfigFile
-    defaultConfig = ConfigFile Nothing Nothing Nothing
+    defaultConfig = ConfigFile Nothing Nothing Nothing Nothing
 
 
 
@@ -170,6 +185,7 @@ data Args = Args
     , argJournalFile        :: Maybe FilePath
     , argOutputFile         :: FilePath
     , argExcludedCurrencies :: [String]
+    , argCryptoCurrencies   :: [String]
     , argDryRun             :: Bool
     }
     deriving (Data, Typeable, Show, Eq)
@@ -215,6 +231,14 @@ argSpec =
                 &= name "output-file"
                 &= name "o"
                 &= typ "FILE"
+            , argCryptoCurrencies   =
+                []
+                &= help
+                       "Cryptocurrencies to fetch prices for. Flag can be passed multiple times."
+                &= explicit
+                &= name "c"
+                &= name "crypto"
+                &= typ "TICKER,..."
             , argExcludedCurrencies = defaultExcludedCurrencies &= args &= typ
                                           "EXCLUDED_CURRENCY ..."
             , argDryRun             =
@@ -240,14 +264,23 @@ argSpec =
                , "By default, we find all non-USD commodities in your "
                , "journal file and query AlphaVantage for their stock prices "
                , "over the date range used in the journal file. Currently, we "
-               , "only support public U.S. equities & do not call out to AlphaVantage's"
-               , "FOREX or Crypto API routes. If you have commodities that are "
-               , "not supported by AlphaVantage, hledger-stockquotes will output "
-               , "an error when attempting to processing them. To avoid processing "
-               , "of unsupported currencies, you can pass in any commodities to "
-               , "exclude as arguments. If you use the default commodity directive "
-               , "in your journal file, hledger will include an `AUTO` commodity "
-               , "when parsing your journal."
+               , "only support public U.S. equities & cryptocurrencies & do "
+               , "not call out to AlphaVantage's FOREX API routes. "
+               , "If you have commodities that are not supported by AlphaVantage, "
+               , "hledger-stockquotes will output an error when attempting to "
+               , "processing them. To avoid processing of unsupported currencies, "
+               , "you can pass in any commodities to exclude as arguments."
+               , "If you use the default commodity directive in your journal file, "
+               , "hledger will include an `AUTO` commodity when parsing your journal."
+               , ""
+               , ""
+               , "CRYPTOCURRENCIES"
+               , ""
+               , "Use the `-c` flag to specify which commodities are cryptocurrencies. "
+               , "You can pass the flag multiple times or specify them as a "
+               , "comma-separated list. For the listed cryptocurrencies, we will "
+               , "hit AlphaVantage's Daily Crypto Prices API route instead of the "
+               , "normal Stock Prices route."
                , ""
                , ""
                , "API LIMITS"
@@ -288,9 +321,10 @@ argSpec =
                , "to parse a configuration file in $XDG_CONFIG_HOME/hledger-stockquotes/config.yaml. "
                , "It currently supports the following top-level keys: "
                , ""
-               , "- `api-key`:      (string) Your AlphaVantage API Key"
-               , "- `exclude`:      (list of strings) Currencies to Exclude"
-               , "- `rate-limit`:   (bool) Obey AlphaVantage's Rate Limit"
+               , "- `api-key`:          (string) Your AlphaVantage API Key"
+               , "- `cryptocurrencies`: (list of string) Cryptocurrencies to Fetch"
+               , "- `exclude`:          (list of strings) Currencies to Exclude"
+               , "- `rate-limit`:       (bool) Obey AlphaVantage's Rate Limit"
                , ""
                , "Environmental variables will overide any config file options, "
                , "and CLI flags will override both environmental variables & "
@@ -304,6 +338,9 @@ argSpec =
                , ""
                , "Output prices into a custom journal file:"
                , "    hledger-stockquotes -a <your-api-key> -o prices/2021.journal"
+               , ""
+               , "Fetch prices for all commodities, including Bitcoin:"
+               , "    hledger-stockquotes -a <your-api-key> -c BTC"
                , ""
                , "Ignore the default, foreign, & crypto commodities:"
                , "    hledger-stockquotes -a <your-api-key> AUTO BTC ETH EUR"

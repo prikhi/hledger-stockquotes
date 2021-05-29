@@ -57,6 +57,19 @@ NOTE: hledger defines an `AUTO` commodity if you use the default commodity
 directive(`D`).
 
 
+### Cryptocurrencies
+
+You can specify a list of cryptocurrencies that you wish to pull prices for
+with the `-c` or `--crypto` flag. You can pass a comma-separated list of
+currencies or pass the flag multiple times. We will split the commodities from
+your journal file into a list of equities & cryptocurrencies and hit the
+appropriate AlphaVantage route for each.
+
+```sh
+hledger-stockquotes -a MY_API_KEY -c BTC,ETH --crypto XMR -c BNB
+```
+
+
 ### API Limits
 
 AlphaVantage has an API request limit of 5 requests per minute.
@@ -75,15 +88,18 @@ ranges that would be queried instead of making requests to AlphaVantage.
 `$XDG_CONFIG_HOME/hledger-stockquotes/config.yaml`(`$XDG_CONFIG_HOME` is
 usually `~/.config/`).
 
-You can set the `api-key`, `rate-limit`, & `exclude` options via this file:
+You can set the `api-key`, `rate-limit`, `cryptocurrencies`, & `exclude`
+options via this file:
 
 ```yaml
 rate-limit: false
 api-key: DeAdBeEf9001
+crypto-currencies:
+    - BTC
+    - XMR
 exclude:
     - USD
     - AUTO
-    - BTC
 ```
 
 CLI flags & environmental variables will override config file settings.

@@ -1,19 +1,30 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 {- | Helper functions for the @hledger-stockquotes@ application.
 
 -}
-module Hledger.StockQuotes where
+module Hledger.StockQuotes
+    ( getCommoditiesAndDateRange
+    , fetchPrices
+    , makePriceDirectives
+    , GenericPrice(..)
+    , getClosePrice
+    )
+where
 
 import           Control.Concurrent             ( threadDelay )
 import           Control.Exception              ( SomeException
                                                 , displayException
                                                 , try
                                                 )
+import           Data.Bifunctor                 ( second )
 import           Data.List.Split                ( chunksOf )
 import           Data.Maybe                     ( catMaybes )
+import           Data.Scientific                ( Scientific )
 import           Data.Text.Encoding             ( encodeUtf8 )
 import           Data.Time                      ( Day
                                                 , UTCTime(utctDay)
@@ -33,7 +44,9 @@ import           System.IO                      ( hPutStrLn
 
 import           Web.AlphaVantage               ( AlphaVantageResponse(..)
                                                 , Config
+                                                , CryptoPrices(..)
                                                 , Prices(..)
+                                                , getDailyCryptoPrices
                                                 , getDailyPrices
                                                 )
 
@@ -70,43 +83,88 @@ getCommoditiesAndDateRange excluded journalPath = do
 -- | Fetch the Prices for the Commodities from the AlphaVantage API,
 -- limiting the returned prices between the given Days.
 --
--- Note: Fetching errors are currently logged to stdout.
+-- Note: Fetching errors are currently logged to 'stderr'.
 fetchPrices
     :: Config
+    -- ^ AlphaVantage Configuration
     -> [CommoditySymbol]
+    -- ^ Commodities to Fetch
+    -> [T.Text]
+    -- ^ Commodities to Classify as Cryptocurrencies
     -> Day
+    -- ^ Start of Price Range
     -> Day
+    -- ^ End of Price Range
     -> Bool
-    -> IO [(CommoditySymbol, [(Day, Prices)])]
-fetchPrices cfg symbols start end rateLimit = do
+    -- ^ Rate Limit Requests
+    -> IO [(CommoditySymbol, [(Day, GenericPrice)])]
+fetchPrices cfg symbols cryptoCurrencies start end rateLimit = do
+    let (stockSymbols, cryptoSymbols) =
+            L.partition (`notElem` cryptoCurrencies) symbols
+        genericAction =
+            map FetchStock stockSymbols <> map FetchCrypto cryptoSymbols
     if rateLimit
-        then fmap catMaybes $ rateLimitActions $ map action symbols
-        else catMaybes <$> mapM action symbols
+        then fmap catMaybes $ rateLimitActions $ map fetch genericAction
+        else catMaybes <$> mapM fetch genericAction
   where
-    action :: CommoditySymbol -> IO (Maybe (CommoditySymbol, [(Day, Prices)]))
-    action symbol = try (getDailyPrices cfg symbol start end) >>= \case
-        Left (e :: SomeException) -> do
-            logError
-                $  "Error Fetching Prices for Symbol `"
-                <> T.unpack symbol
-                <> "`:\n\t"
-                ++ displayException e
-                ++ "\n"
-            return Nothing
+    fetch :: AlphaRequest -> IO (Maybe (CommoditySymbol, [(Day, GenericPrice)]))
+    fetch req = do
+        (symbol, label, resp) <- case req of
+            FetchStock symbol ->
+                (symbol, "Stock", )
+                    <$> try
+                            (   fmap (map (second Stock))
+                            <$> getDailyPrices cfg symbol start end
+                            )
+            FetchCrypto symbol -> (symbol, "Cryptocurrency", ) <$> try
+                (   fmap (map (second Crypto))
+                <$> getDailyCryptoPrices cfg symbol "USD" start end
+                )
+        case resp of
+            Left (e :: SomeException) -> do
+                logError
+                    $  "Error Fetching Prices for "
+                    <> label
+                    <> "  `"
+                    <> T.unpack symbol
+                    <> "`:\n\t"
+                    ++ displayException e
+                    ++ "\n"
+                return Nothing
 
-        Right (ApiError note) -> do
-            logError
-                $  "Error Fetching Prices for Symbol `"
-                <> T.unpack symbol
-                <> "`:\n\t"
-                <> T.unpack note
-                <> "\n"
-            return Nothing
+            Right (ApiError note) -> do
+                logError
+                    $  "Error Fetching Prices for "
+                    <> label
+                    <> " `"
+                    <> T.unpack symbol
+                    <> "`:\n\t"
+                    <> T.unpack note
+                    <> "\n"
+                return Nothing
 
-        Right (ApiResponse prices) -> return $ Just (symbol, prices)
+            Right (ApiResponse prices) -> return $ Just (symbol, prices)
+
     logError :: String -> IO ()
     logError = hPutStrLn stderr
 
+
+-- | Types of AlphaVantage requests we make. Unified under one type so we
+-- write a generic fetching function that can be rate limited.
+data AlphaRequest
+    = FetchStock CommoditySymbol
+    | FetchCrypto CommoditySymbol
+
+-- | Union type for all the various prices we can return.
+data GenericPrice
+    = Stock Prices
+    | Crypto CryptoPrices
+
+-- | Get the day's closing price.
+getClosePrice :: GenericPrice -> Scientific
+getClosePrice = \case
+    Stock  Prices { pClose }        -> pClose
+    Crypto CryptoPrices { cpClose } -> cpClose
 
 -- | Perform the actions at a rate of 5 per second, then return all the
 -- results.
@@ -130,19 +188,20 @@ rateLimitActions a = case chunksOf 5 a of
 
 -- | Build the Price Directives for the Daily Prices of the given
 -- Commodities.
-makePriceDirectives :: [(CommoditySymbol, [(Day, Prices)])] -> LBS.ByteString
+makePriceDirectives
+    :: [(CommoditySymbol, [(Day, GenericPrice)])] -> LBS.ByteString
 makePriceDirectives = (<> "\n") . LBS.intercalate "\n\n" . map makeDirectives
   where
-    makeDirectives :: (CommoditySymbol, [(Day, Prices)]) -> LBS.ByteString
+    makeDirectives :: (CommoditySymbol, [(Day, GenericPrice)]) -> LBS.ByteString
     makeDirectives (symbol, prices) =
         LBS.intercalate "\n"
             $ ("; " <> LBS.fromStrict (encodeUtf8 symbol))
             : map (makeDirective symbol) prices
-    makeDirective :: CommoditySymbol -> (Day, Prices) -> LBS.ByteString
+    makeDirective :: CommoditySymbol -> (Day, GenericPrice) -> LBS.ByteString
     makeDirective symbol (day, prices) = LBS.intercalate
         " "
         [ "P"
         , LC.pack $ formatTime defaultTimeLocale "%F" day
         , LBS.fromStrict $ encodeUtf8 symbol
-        , "$" <> LC.pack (show $ pClose prices)
+        , "$" <> LC.pack (show $ getClosePrice prices)
         ]
