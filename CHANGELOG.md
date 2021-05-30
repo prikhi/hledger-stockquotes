@@ -2,6 +2,9 @@
 
 ## master
 
+
+## v0.1.2.0
+
 * Add support for fetching cryptocurrency prices with the `-c` flag and
   `cryptocurrencies` config option.
 * Add support for config file at `$XDG_CONFIG_HOME/hstockquotes/config.yaml`
