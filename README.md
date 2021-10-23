@@ -1,6 +1,6 @@
 # hledger-stockquotes
 
-[![hledger-stockquotes Build Status](https://travis-ci.org/prikhi/hledger-stockquotes.svg?branch=master)](https://travis-ci.org/prikhi/hledger-stockquotes)
+[![hledger-stockquotes Build Status](https://github.com/prikhi/hledger-stockquotes/actions/workflows/main.yml/badge.svg)](https://github.com/prikhi/hledger-stockquotes/actions/workflows/main.yml)
 
 `hledger-stockquotes` is a CLI addon for [hledger](https://hledger.org) that
 reads a journal file and pulls the historical prices for commodities from

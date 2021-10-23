@@ -1,0 +1,97 @@
+---
+# yamllint disable rule:line-length
+
+name: CI Build
+
+# yamllint disable-line rule:truthy
+on:
+  # Run Daily
+  schedule:
+    - cron: '0 0 * * *'
+  # Run on Push
+  push:
+  # Run on Tag Creation
+  create:
+  # Allow Running Manually
+  workflow_dispatch:
+
+jobs:
+  build-stack:
+    name: Stack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache Stack Artifacts
+        uses: actions/cache@v2
+        with:
+          key: stack-build-lts-${{ github.ref }}-${{ github.sha }}
+          path: |
+            ~/.stack/
+            .stack-work/
+          restore-keys: |
+            stack-build-lts-${{ github.ref }}-
+            stack-build-lts-
+            stack-build-
+      - uses: haskell/actions/setup@v1
+        with:
+          enable-stack: true
+          stack-no-global: true
+      - run: stack test --fast --haddock --pedantic --resolver lts-18
+
+  # Stackage Nightly - Failures Allowed
+  build-nightly:
+    name: Stackage Nightly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Current Date
+        id: date
+        run: echo -e "::set-output name=year::$(date +%Y)\n::set-output name=month::$(date +%m)\n::set-output name=day::$(date +%d)"
+      - name: Cache Stack Artifacts
+        uses: actions/cache@v2
+        with:
+          key: stack-build-nightly-${{ steps.date.outputs.year }}-${{ steps.date.outputs.month }}-${{ steps.date.outputs.day }}-${{ github.ref }}-${{ github.sha }}
+          path: |
+            ~/.stack/
+            .stack-work/
+          restore-keys: |
+            stack-build-nightly-${{ steps.date.outputs.year }}-${{ steps.date.outputs.month }}-${{ steps.date.outputs.day }}-${{ github.ref }}-
+            stack-build-nightly-${{ steps.date.outputs.year }}-${{ steps.date.outputs.month }}-${{ steps.date.outputs.day }}-
+            stack-build-nightly-${{ steps.date.outputs.year }}-${{ steps.date.outputs.month }}-
+            stack-build-nightly-${{ steps.date.outputs.year }}-
+            stack-build-nightly-
+      - uses: haskell/actions/setup@v1
+        with:
+          enable-stack: true
+          stack-no-global: true
+      - run: stack test --fast --haddock --pedantic --resolver nightly
+        continue-on-error: true
+
+  # Cabal Builds w/ 3 Latest GHC Versions
+  build-cabal:
+    name: GHC / Cabal
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ghc: ['8.8', '8.10', '9.0']
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache Cabal Artifacts
+        uses: actions/cache@v2
+        with:
+          key: cabal-build-${{ matrix.ghc }}-${{ github.ref }}-${{ github.sha }}
+          path: |
+            ~/.cabal/packages/
+            ~/.cabal/store
+            dist-newstyle/
+          restore-keys: |
+            cabal-build-${{ matrix.ghc }}-${{ github.ref }}-
+            cabal-build-${{ matrix.ghc }}-
+            cabal-build-
+      - uses: haskell/actions/setup@v1
+        with:
+          ghc-version: ${{ matrix.ghc }}
+          cabal-version: latest
+          enable-stack: true
+      - run: cabal update
+      - run: cabal new-test --enable-tests && cabal new-haddock
