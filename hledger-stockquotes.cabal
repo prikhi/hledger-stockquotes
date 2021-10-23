@@ -1,0 +1,101 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           hledger-stockquotes
+version:        0.1.2.0
+synopsis:       Generate HLedger Price Directives From Daily Stock Quotes.
+description:    @hledger-stockquotes@ is an addon for <https://hledger.org/ hledger> that
+                reads your journal file, pulls the historical stock prices for commodities,
+                and writes out a new journal file containing the respective price
+                directives.
+                .
+                The <https://www.alphavantage.co/ AlphaVantage API> is used to fetch the
+                stock quotes and you will need a
+                <https://www.alphavantage.co/support/#api-key free API key> to use this
+                program.
+                .
+                You can install @hledger-stockquotes@ with Stack: @stack install --resolver
+                nightly hledger-stockquotes@. Then run @hledger-stockquotes --help@ to see
+                the usage instructions & all available options.
+category:       Finance, Console
+homepage:       https://github.com/prikhi/hledger-stockquotes#readme
+bug-reports:    https://github.com/prikhi/hledger-stockquotes/issues
+author:         Pavan Rikhi
+maintainer:     pavan.rikhi@gmail.com
+copyright:      2020 Pavan Rikhi
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/prikhi/hledger-stockquotes
+
+library
+  exposed-modules:
+      Hledger.StockQuotes
+      Web.AlphaVantage
+  other-modules:
+      Paths_hledger_stockquotes
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -O2
+  build-depends:
+      aeson >=1 && <3
+    , base >=4.7 && <5
+    , bytestring <1
+    , containers <1
+    , hledger-lib <2
+    , req ==3.*
+    , safe >=0.3.5 && <1
+    , scientific <1
+    , split <1
+    , text <2
+    , time <2
+    , unordered-containers <0.3
+  default-language: Haskell2010
+
+executable hledger-stockquotes
+  main-is: Main.hs
+  other-modules:
+      Paths_hledger_stockquotes
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts "-N -T"
+  build-depends:
+      aeson >=1 && <3
+    , base >=4.7 && <5
+    , bytestring <1
+    , cmdargs >=0.6 && <1
+    , directory <2
+    , hledger-stockquotes
+    , raw-strings-qq <2
+    , safe-exceptions
+    , text <2
+    , time <2
+    , xdg-basedir <1
+    , yaml <1
+  default-language: Haskell2010
+
+test-suite hledger-stockquotes-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_hledger_stockquotes
+  hs-source-dirs:
+      tests
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts "-N -T"
+  build-depends:
+      base >=4.7 && <5
+    , hedgehog
+    , hledger-stockquotes
+    , tasty
+    , tasty-hedgehog
+    , tasty-hunit
+  default-language: Haskell2010
