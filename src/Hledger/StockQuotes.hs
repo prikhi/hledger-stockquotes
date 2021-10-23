@@ -166,7 +166,7 @@ getClosePrice = \case
     Stock  Prices { pClose }        -> pClose
     Crypto CryptoPrices { cpClose } -> cpClose
 
--- | Perform the actions at a rate of 5 per second, then return all the
+-- | Perform the actions at a rate of 5 per minute, then return all the
 -- results.
 --
 -- Note: Will log waiting times to stdout.
