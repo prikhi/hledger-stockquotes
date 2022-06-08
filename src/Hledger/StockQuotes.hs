@@ -63,7 +63,9 @@ import qualified Data.Text                     as T
 getCommoditiesAndDateRange
     :: [T.Text] -> FilePath -> IO ([CommoditySymbol], Day, Day)
 getCommoditiesAndDateRange excluded journalPath = do
-    journal     <- either error id <$> readJournalFile definputopts journalPath
+    journal <- fmap (either error id) . runExceptT $ readJournalFile
+        definputopts
+        journalPath
     currentTime <- getCurrentTime
     let commodities =
             filter (`notElem` excluded)

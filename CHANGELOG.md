@@ -2,6 +2,8 @@
 
 ## master
 
+* Fix breaking changes in `hledger-lib` v1.26.
+
 
 ## v0.1.2.0
 
