@@ -2,6 +2,8 @@
 
 ## master
 
+* Bump package dependencies.
+
 
 ## v0.1.2.1
 

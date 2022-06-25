@@ -69,7 +69,7 @@ library:
         - safe >= 0.3.5 && < 1
         - scientific < 1
         - split < 1
-        - text < 2
+        - text < 3
         - time < 2
         - unordered-containers < 0.3
 
@@ -91,7 +91,7 @@ executables:
             - directory < 2
             - raw-strings-qq < 2
             - safe-exceptions
-            - text < 2
+            - text < 3
             - time < 2
             - xdg-basedir < 1
             - yaml < 1
