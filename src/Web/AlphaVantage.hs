@@ -16,8 +16,7 @@ module Web.AlphaVantage
     , getDailyPrices
     , CryptoPrices(..)
     , getDailyCryptoPrices
-    )
-where
+    ) where
 
 import           Data.Aeson                     ( (.:)
                                                 , (.:?)
@@ -90,26 +89,29 @@ instance FromJSON PriceList where
 
 -- | The Single-Day Price Quotes & Volume for a Stock,.
 data Prices = Prices
-    { pOpen   :: Scientific
+    { pOpen          :: Scientific
     -- ^ Day's Opening Price
-    , pHigh   :: Scientific
+    , pHigh          :: Scientific
     -- ^ High Price of the Day
-    , pLow    :: Scientific
+    , pLow           :: Scientific
     -- ^ Low Price of the Day
-    , pClose  :: Scientific
+    , pClose         :: Scientific
     -- ^ Day's Closing Price
-    , pVolume :: Integer
+    , pAdjustedClose :: Scientific
+    -- ^ Day's Adjusted Closing Price
+    , pVolume        :: Integer
     -- ^ Trading Volume for the Day
     }
     deriving (Show, Read, Eq, Generic)
 
 instance FromJSON Prices where
     parseJSON = withObject "Prices" $ \v -> do
-        pOpen   <- parseScientific $ v .: "1. open"
-        pHigh   <- parseScientific $ v .: "2. high"
-        pLow    <- parseScientific $ v .: "3. low"
-        pClose  <- parseScientific $ v .: "4. close"
-        pVolume <- parseScientific $ v .: "5. volume"
+        pOpen          <- parseScientific $ v .: "1. open"
+        pHigh          <- parseScientific $ v .: "2. high"
+        pLow           <- parseScientific $ v .: "3. low"
+        pClose         <- parseScientific $ v .: "4. close"
+        pAdjustedClose <- parseScientific $ v .: "5. adjusted close"
+        pVolume        <- parseScientific $ v .: "6. volume"
         return Prices { .. }
 
 
@@ -182,7 +184,7 @@ getDailyPrices cfg symbol startDay endDay = do
         (https "www.alphavantage.co" /~ ("query" :: T.Text))
         NoReqBody
         jsonResponse
-        (  ("function" =: ("TIME_SERIES_DAILY" :: T.Text))
+        (  ("function" =: ("TIME_SERIES_DAILY_ADJUSTED" :: T.Text))
         <> ("symbol" =: symbol)
         <> ("outputsize" =: ("full" :: T.Text))
         <> ("datatype" =: ("json" :: T.Text))
