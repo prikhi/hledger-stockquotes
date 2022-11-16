@@ -2,6 +2,9 @@
 
 ## master
 
+
+## v0.1.2.2
+
 * Switch from the (now premium-only) `TIME_SERIES_DAILY` AlphaVantage endpoint
   to the free `TIME_SERIES_DAILY_ADJUSTED` endpoint.
 * Bump package dependencies.
