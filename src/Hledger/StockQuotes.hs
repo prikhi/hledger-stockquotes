@@ -13,8 +13,7 @@ module Hledger.StockQuotes
     , makePriceDirectives
     , GenericPrice(..)
     , getClosePrice
-    )
-where
+    ) where
 
 import           Control.Concurrent             ( threadDelay )
 import           Control.Exception              ( SomeException
@@ -109,7 +108,8 @@ fetchPrices cfg symbols cryptoCurrencies start end rateLimit = do
         then fmap catMaybes $ rateLimitActions $ map fetch genericAction
         else catMaybes <$> mapM fetch genericAction
   where
-    fetch :: AlphaRequest -> IO (Maybe (CommoditySymbol, [(Day, GenericPrice)]))
+    fetch
+        :: AlphaRequest -> IO (Maybe (CommoditySymbol, [(Day, GenericPrice)]))
     fetch req = do
         (symbol, label, resp) <- case req of
             FetchStock symbol ->
@@ -194,7 +194,8 @@ makePriceDirectives
     :: [(CommoditySymbol, [(Day, GenericPrice)])] -> LBS.ByteString
 makePriceDirectives = (<> "\n") . LBS.intercalate "\n\n" . map makeDirectives
   where
-    makeDirectives :: (CommoditySymbol, [(Day, GenericPrice)]) -> LBS.ByteString
+    makeDirectives
+        :: (CommoditySymbol, [(Day, GenericPrice)]) -> LBS.ByteString
     makeDirectives (symbol, prices) =
         LBS.intercalate "\n"
             $ ("; " <> LBS.fromStrict (encodeUtf8 symbol))
