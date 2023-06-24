@@ -1,10 +1,9 @@
 ---
 
-resolver: lts-19.33
+resolver: lts-21.0
 
 packages:
     - .
 
 extra-deps:
-    - hledger-lib-1.27.1@sha256:c4065082474087e625ef1cc1b9e70ffa669c649de8bfa5dd39ad9b9e7e1b9670,6689
-    - breakpoint-0.1.0.0@sha256:0b8858870d0ff41c525d1bfc3d665a41d3263c5c1968c51652a373c247a35a06,1570
+    []

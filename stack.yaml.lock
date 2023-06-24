@@ -3,24 +3,10 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages:
-- completed:
-    hackage: hledger-lib-1.27.1@sha256:c4065082474087e625ef1cc1b9e70ffa669c649de8bfa5dd39ad9b9e7e1b9670,6689
-    pantry-tree:
-      sha256: 8c77a4dd514bb9c5211866117f16ca37eda98e4743a96edd539bf1909f72dada
-      size: 3801
-  original:
-    hackage: hledger-lib-1.27.1@sha256:c4065082474087e625ef1cc1b9e70ffa669c649de8bfa5dd39ad9b9e7e1b9670,6689
-- completed:
-    hackage: breakpoint-0.1.0.0@sha256:0b8858870d0ff41c525d1bfc3d665a41d3263c5c1968c51652a373c247a35a06,1570
-    pantry-tree:
-      sha256: ceac3130f253b92e628ec483705f6bf1503ddcb989a4e6232717fdb604525d3f
-      size: 414
-  original:
-    hackage: breakpoint-0.1.0.0@sha256:0b8858870d0ff41c525d1bfc3d665a41d3263c5c1968c51652a373c247a35a06,1570
+packages: []
 snapshots:
 - completed:
-    sha256: 6d1532d40621957a25bad5195bfca7938e8a06d923c91bc52aa0f3c41181f2d4
-    size: 619204
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/33.yaml
-  original: lts-19.33
+    sha256: 1867d84255dff8c87373f5dd03e5a5cb1c10a99587e26c8793e750c54e83ffdc
+    size: 639139
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/0.yaml
+  original: lts-21.0
