@@ -97,8 +97,6 @@ data Prices = Prices
     -- ^ Low Price of the Day
     , pClose         :: Scientific
     -- ^ Day's Closing Price
-    , pAdjustedClose :: Scientific
-    -- ^ Day's Adjusted Closing Price
     , pVolume        :: Integer
     -- ^ Trading Volume for the Day
     }
@@ -110,8 +108,7 @@ instance FromJSON Prices where
         pHigh          <- parseScientific $ v .: "2. high"
         pLow           <- parseScientific $ v .: "3. low"
         pClose         <- parseScientific $ v .: "4. close"
-        pAdjustedClose <- parseScientific $ v .: "5. adjusted close"
-        pVolume        <- parseScientific $ v .: "6. volume"
+        pVolume        <- parseScientific $ v .: "5. volume"
         return Prices { .. }
 
 
@@ -184,7 +181,7 @@ getDailyPrices cfg symbol startDay endDay = do
         (https "www.alphavantage.co" /~ ("query" :: T.Text))
         NoReqBody
         jsonResponse
-        (  ("function" =: ("TIME_SERIES_DAILY_ADJUSTED" :: T.Text))
+        (  ("function" =: ("TIME_SERIES_DAILY" :: T.Text))
         <> ("symbol" =: symbol)
         <> ("outputsize" =: ("full" :: T.Text))
         <> ("datatype" =: ("json" :: T.Text))

@@ -2,6 +2,10 @@
 
 ## master
 
+* AlphaVantage has swapped premium-only endpoints on us again - now
+  `TIME_SERIES_DAILY` is free and `TIME_SERIES_DAILY_ADJUSTED` is paid-only so
+  we had to switch back.
+
 
 ## v0.1.2.2
 
