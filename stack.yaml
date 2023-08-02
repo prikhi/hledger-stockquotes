@@ -1,6 +1,6 @@
 ---
 
-resolver: lts-21.0
+resolver: lts-21.4
 
 packages:
     - .
