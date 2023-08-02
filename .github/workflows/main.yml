@@ -3,7 +3,6 @@
 
 name: CI Build
 
-# yamllint disable-line rule:truthy
 on:
   # Run Daily
   schedule:
@@ -32,7 +31,7 @@ jobs:
             stack-build-lts-${{ github.ref }}-
             stack-build-lts-
             stack-build-
-      - uses: haskell/actions/setup@v1
+      - uses: haskell/actions/setup@v2
         with:
           enable-stack: true
           stack-no-global: true
@@ -60,7 +59,7 @@ jobs:
             stack-build-nightly-${{ steps.date.outputs.year }}-${{ steps.date.outputs.month }}-
             stack-build-nightly-${{ steps.date.outputs.year }}-
             stack-build-nightly-
-      - uses: haskell/actions/setup@v1
+      - uses: haskell/actions/setup@v2
         with:
           enable-stack: true
           stack-no-global: true
@@ -72,6 +71,7 @@ jobs:
     name: GHC / Cabal
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 3
       matrix:
         ghc: ['9.0', '9.2', '9.4']
     steps:
@@ -88,7 +88,7 @@ jobs:
             cabal-build-${{ matrix.ghc }}-${{ github.ref }}-
             cabal-build-${{ matrix.ghc }}-
             cabal-build-
-      - uses: haskell/actions/setup@v1
+      - uses: haskell/actions/setup@v2
         with:
           ghc-version: ${{ matrix.ghc }}
           cabal-version: latest
