@@ -19,9 +19,9 @@ jobs:
     name: Stack
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Cache Stack Artifacts
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           key: stack-build-lts-${{ github.ref }}-${{ github.sha }}
           path: |
@@ -31,7 +31,7 @@ jobs:
             stack-build-lts-${{ github.ref }}-
             stack-build-lts-
             stack-build-
-      - uses: haskell/actions/setup@v2
+      - uses: haskell-actions/setup@v2
         with:
           enable-stack: true
           stack-no-global: true
@@ -42,12 +42,12 @@ jobs:
     name: Stackage Nightly
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Get Current Date
         id: date
         run: echo -e "::set-output name=year::$(date +%Y)\n::set-output name=month::$(date +%m)\n::set-output name=day::$(date +%d)"
       - name: Cache Stack Artifacts
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           key: stack-build-nightly-${{ steps.date.outputs.year }}-${{ steps.date.outputs.month }}-${{ steps.date.outputs.day }}-${{ github.ref }}-${{ github.sha }}
           path: |
@@ -59,7 +59,7 @@ jobs:
             stack-build-nightly-${{ steps.date.outputs.year }}-${{ steps.date.outputs.month }}-
             stack-build-nightly-${{ steps.date.outputs.year }}-
             stack-build-nightly-
-      - uses: haskell/actions/setup@v2
+      - uses: haskell-actions/setup@v2
         with:
           enable-stack: true
           stack-no-global: true
@@ -75,9 +75,9 @@ jobs:
       matrix:
         ghc: ['9.2', '9.4', '9.6']
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Cache Cabal Artifacts
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           key: cabal-build-${{ matrix.ghc }}-${{ github.ref }}-${{ github.sha }}
           path: |
@@ -88,7 +88,7 @@ jobs:
             cabal-build-${{ matrix.ghc }}-${{ github.ref }}-
             cabal-build-${{ matrix.ghc }}-
             cabal-build-
-      - uses: haskell/actions/setup@v2
+      - uses: haskell-actions/setup@v2
         with:
           ghc-version: ${{ matrix.ghc }}
           cabal-version: latest
