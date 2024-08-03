@@ -2,6 +2,16 @@
 
 ## master
 
+* Change `Prices` volume field from `Integer` to `Scientific` to support
+  decimal amounts returned by cryptocurrency routes.
+* AlphaVantage changed the information message field from `Note` to
+  `Information` so we now attempt to parse both and throw an `ApiError` if
+  either exist. This usually occurs when you've run out of API calls for the
+  day.
+* AlphaVantage changed the `DIGITAL_CURRENCY_DAILY` endpoint to return the same
+  price fields as the `TIME_SERIES_DAILY` endpoint, so we dropped the
+  `CryptoPrices` type and return the `Prices` type from both the stock & crypto
+  API calls.
 * AlphaVantage has swapped premium-only endpoints on us again - now
   `TIME_SERIES_DAILY` is free and `TIME_SERIES_DAILY_ADJUSTED` is paid-only so
   we had to switch back.

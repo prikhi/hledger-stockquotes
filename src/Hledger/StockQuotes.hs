@@ -11,8 +11,6 @@ module Hledger.StockQuotes
     ( getCommoditiesAndDateRange
     , fetchPrices
     , makePriceDirectives
-    , GenericPrice(..)
-    , getClosePrice
     ) where
 
 import           Control.Concurrent             ( threadDelay )
@@ -20,10 +18,8 @@ import           Control.Exception              ( SomeException
                                                 , displayException
                                                 , try
                                                 )
-import           Data.Bifunctor                 ( second )
 import           Data.List.Split                ( chunksOf )
 import           Data.Maybe                     ( catMaybes )
-import           Data.Scientific                ( Scientific )
 import           Data.Text.Encoding             ( encodeUtf8 )
 import           Data.Time                      ( Day
                                                 , UTCTime(utctDay)
@@ -43,7 +39,6 @@ import           System.IO                      ( hPutStrLn
 
 import           Web.AlphaVantage               ( AlphaVantageResponse(..)
                                                 , Config
-                                                , CryptoPrices(..)
                                                 , Prices(..)
                                                 , getDailyCryptoPrices
                                                 , getDailyPrices
@@ -98,7 +93,7 @@ fetchPrices
     -- ^ End of Price Range
     -> Bool
     -- ^ Rate Limit Requests
-    -> IO [(CommoditySymbol, [(Day, GenericPrice)])]
+    -> IO [(CommoditySymbol, [(Day, Prices)])]
 fetchPrices cfg symbols cryptoCurrencies start end rateLimit = do
     let (stockSymbols, cryptoSymbols) =
             L.partition (`notElem` cryptoCurrencies) symbols
@@ -109,18 +104,14 @@ fetchPrices cfg symbols cryptoCurrencies start end rateLimit = do
         else catMaybes <$> mapM fetch genericAction
   where
     fetch
-        :: AlphaRequest -> IO (Maybe (CommoditySymbol, [(Day, GenericPrice)]))
+        :: AlphaRequest -> IO (Maybe (CommoditySymbol, [(Day, Prices)]))
     fetch req = do
         (symbol, label, resp) <- case req of
             FetchStock symbol ->
                 (symbol, "Stock", )
-                    <$> try
-                            (   fmap (map (second Stock))
-                            <$> getDailyPrices cfg symbol start end
-                            )
+                    <$> try (getDailyPrices cfg symbol start end)
             FetchCrypto symbol -> (symbol, "Cryptocurrency", ) <$> try
-                (   fmap (map (second Crypto))
-                <$> getDailyCryptoPrices cfg symbol "USD" start end
+                (  getDailyCryptoPrices cfg symbol "USD" start end
                 )
         case resp of
             Left (e :: SomeException) -> do
@@ -157,17 +148,6 @@ data AlphaRequest
     = FetchStock CommoditySymbol
     | FetchCrypto CommoditySymbol
 
--- | Union type for all the various prices we can return.
-data GenericPrice
-    = Stock Prices
-    | Crypto CryptoPrices
-
--- | Get the day's closing price.
-getClosePrice :: GenericPrice -> Scientific
-getClosePrice = \case
-    Stock  Prices { pClose }        -> pClose
-    Crypto CryptoPrices { cpClose } -> cpClose
-
 -- | Perform the actions at a rate of 5 per minute, then return all the
 -- results.
 --
@@ -191,20 +171,20 @@ rateLimitActions a = case chunksOf 5 a of
 -- | Build the Price Directives for the Daily Prices of the given
 -- Commodities.
 makePriceDirectives
-    :: [(CommoditySymbol, [(Day, GenericPrice)])] -> LBS.ByteString
+    :: [(CommoditySymbol, [(Day, Prices)])] -> LBS.ByteString
 makePriceDirectives = (<> "\n") . LBS.intercalate "\n\n" . map makeDirectives
   where
     makeDirectives
-        :: (CommoditySymbol, [(Day, GenericPrice)]) -> LBS.ByteString
+        :: (CommoditySymbol, [(Day, Prices)]) -> LBS.ByteString
     makeDirectives (symbol, prices) =
         LBS.intercalate "\n"
             $ ("; " <> LBS.fromStrict (encodeUtf8 symbol))
             : map (makeDirective symbol) prices
-    makeDirective :: CommoditySymbol -> (Day, GenericPrice) -> LBS.ByteString
+    makeDirective :: CommoditySymbol -> (Day, Prices) -> LBS.ByteString
     makeDirective symbol (day, prices) = LBS.intercalate
         " "
         [ "P"
         , LC.pack $ formatTime defaultTimeLocale "%F" day
         , LBS.fromStrict $ encodeUtf8 symbol
-        , "$" <> LC.pack (show $ getClosePrice prices)
+        , "$" <> LC.pack (show $ pClose prices)
         ]

@@ -14,10 +14,11 @@ module Web.AlphaVantage
     , AlphaVantageResponse(..)
     , Prices(..)
     , getDailyPrices
-    , CryptoPrices(..)
     , getDailyCryptoPrices
     ) where
 
+import Control.Applicative                      ( (<|>)
+                                                )
 import           Data.Aeson                     ( (.:)
                                                 , (.:?)
                                                 , FromJSON(..)
@@ -63,12 +64,13 @@ data AlphaVantageResponse a
     | ApiError T.Text
     deriving (Show, Read, Eq, Generic, Functor)
 
--- | Check for errors by attempting to parse a @Note@ field. If one does
--- not exist, parse the inner type.
+-- | Check for errors by attempting to parse a @Note@ or @Information@
+-- field. If one does not exist, parse the inner type.
 instance FromJSON a => FromJSON (AlphaVantageResponse a) where
     parseJSON = withObject "AlphaVantageResponse" $ \v -> do
         mbErrorNote <- v .:? "Note"
-        case mbErrorNote of
+        mbErrorInfo <- v .:? "Information"
+        case mbErrorNote <|> mbErrorInfo of
             Nothing   -> ApiResponse <$> parseJSON (Object v)
             Just note -> return $ ApiError note
 
@@ -97,7 +99,7 @@ data Prices = Prices
     -- ^ Low Price of the Day
     , pClose         :: Scientific
     -- ^ Day's Closing Price
-    , pVolume        :: Integer
+    , pVolume        :: Scientific
     -- ^ Trading Volume for the Day
     }
     deriving (Show, Read, Eq, Generic)
@@ -115,7 +117,7 @@ instance FromJSON Prices where
 -- | List of Daily Prices for a Cryptocurrency.
 newtype CryptoPriceList =
     CryptoPriceList
-        { fromCryptoPriceList :: [(Day, CryptoPrices)]
+        { fromCryptoPriceList :: [(Day, Prices)]
         } deriving (Show, Read, Eq, Generic)
 
 instance FromJSON CryptoPriceList where
@@ -128,38 +130,11 @@ instance FromJSON CryptoPriceList where
                     )
                     daysAndPrices
 
--- | The Single-Day Price Quotes, Volume, & Market Cap for
--- a Cryptocurrency.
-data CryptoPrices = CryptoPrices
-    { cpOpen      :: Scientific
-    -- ^ Day's Opening Price
-    , cpHigh      :: Scientific
-    -- ^ High Price of the Day
-    , cpLow       :: Scientific
-    -- ^ Low Price of the Day
-    , cpClose     :: Scientific
-    -- ^ Day's Closing Price
-    , cpVolume    :: Scientific
-    -- ^ Trading Volume for the Day
-    , cpMarketCap :: Scientific
-    }
-    deriving (Show, Read, Eq, Generic)
-
-instance FromJSON CryptoPrices where
-    parseJSON = withObject "CryptoPrices" $ \v -> do
-        cpOpen      <- parseScientific $ v .: "1b. open (USD)"
-        cpHigh      <- parseScientific $ v .: "2b. high (USD)"
-        cpLow       <- parseScientific $ v .: "3b. low (USD)"
-        cpClose     <- parseScientific $ v .: "4b. close (USD)"
-        cpVolume    <- parseScientific $ v .: "5. volume"
-        cpMarketCap <- parseScientific $ v .: "6. market cap (USD)"
-        return CryptoPrices { .. }
-
 
 parseAlphavantageDay :: String -> Parser Day
 parseAlphavantageDay = parseTimeM True defaultTimeLocale "%F"
 
-parseScientific :: (MonadFail m, Read a) => m String -> m a
+parseScientific :: MonadFail m => m String -> m Scientific
 parseScientific parser = do
     val <- parser
     case readMaybe val of
@@ -199,7 +174,7 @@ getDailyCryptoPrices
     -> T.Text
     -> Day
     -> Day
-    -> IO (AlphaVantageResponse [(Day, CryptoPrices)])
+    -> IO (AlphaVantageResponse [(Day, Prices)])
 getDailyCryptoPrices cfg symbol market startDay endDay = do
     resp <- runReq defaultHttpConfig $ req
         GET
