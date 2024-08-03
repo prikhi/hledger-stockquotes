@@ -44,9 +44,9 @@ exists!
 ### Excluding Commodities
 
 By default, we query AlphaVantage for all non-USD commodities included in your
-journal file. We do not currently support AlphaVantage's FOREX or Crypto API
-routes, so if you have those commodities, `stockquotes` will print an error
-when fetching them. You can exclude commodities by passing them as arguments to
+journal file. We do not currently support AlphaVantage's FOREX API route, so if
+you have those commodities, `stockquotes` will print an error when fetching
+them. You can exclude commodities by passing them as arguments to
 `hledger-stockquotes`:
 
 ```sh
@@ -88,21 +88,51 @@ ranges that would be queried instead of making requests to AlphaVantage.
 `$XDG_CONFIG_HOME/hledger-stockquotes/config.yaml`(`$XDG_CONFIG_HOME` is
 usually `~/.config/`).
 
-You can set the `api-key`, `rate-limit`, `cryptocurrencies`, & `exclude`
-options via this file:
+You can set the `api-key`, `rate-limit`, `cryptocurrencies`, `exclude`, &
+`commodity-aliases` options via this file:
 
 ```yaml
 rate-limit: false
 api-key: DeAdBeEf9001
-crypto-currencies:
+cryptocurrencies:
     - BTC
     - XMR
 exclude:
     - USD
     - AUTO
+commodity-aliases:
+    MY_BTC_CURRENCY: BTC
+    401K_VTSAX: VTSAX
 ```
 
 CLI flags & environmental variables will override config file settings.
+
+
+### Aliases
+
+By specifying the `commedity-aliases` option in your configuration file,
+you can rename the commodities used in your journal to the commodities
+expected by AlphaVantage.
+
+Keys in the map should be your journal commities while their values are the
+AlphaVantage ticker symbols:
+
+```yaml
+commodity-aliases:
+    MY_VTSAX: VTSAX
+    MY_BTC_CURRENCY: BTC
+```
+
+Renaming is done after commodity exclusion, but before bucketing them into
+equities & cryptocurrencies so the `exclude` list should use your symbols while
+the `cryptocurrencies` list should use AlphaVantage's:
+
+```code
+journal -> exclude -> commodity-aliases -> cryptocurrencies
+```
+
+Specifying aliases via command line options or environmental variable
+is not currently supported.
 
 
 ### Additional Documentation

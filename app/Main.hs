@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Main where
@@ -16,7 +17,6 @@ import Data.Aeson
     , withObject
     , (.:?)
     )
-import Data.List (partition)
 import Data.Maybe (fromMaybe)
 import Data.Time
     ( Day
@@ -61,6 +61,7 @@ import Paths_hledger_stockquotes (version)
 import Web.AlphaVantage
 
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.Map as M
 import qualified Data.Text as T
 
 
@@ -81,6 +82,7 @@ main = do
                     cfg
                     commodities
                     cryptoCurrencies
+                    aliases
                     start
                     end
                     rateLimit
@@ -94,11 +96,14 @@ main = do
                     <> " to "
                     <> showDate end
             let (stocks, cryptos) =
-                    partition (`notElem` cryptoCurrencies) commodities
+                    unaliasAndBucketCommodities commodities cryptoCurrencies aliases
             putStrLn "Querying Stocks:"
             forM_ stocks $ \commodity -> putStrLn $ "\t" <> T.unpack commodity
             putStrLn "Querying CryptoCurrencies:"
             forM_ cryptos $ \commodity -> putStrLn $ "\t" <> T.unpack commodity
+            let reAliased = map fst $ reAliasCommodities (fmap (,()) $ stocks <> cryptos) commodities aliases
+            putStrLn "Writing Prices for:"
+            forM_ reAliased $ \commodity -> putStrLn $ "\t" <> T.unpack commodity
   where
     showDate :: Day -> String
     showDate = formatTime defaultTimeLocale "%Y-%m-%d"
@@ -118,6 +123,7 @@ data AppConfig = AppConfig
     , excludedCurrencies :: [String]
     , cryptoCurrencies :: [T.Text]
     , dryRun :: Bool
+    , aliases :: M.Map T.Text T.Text
     }
     deriving (Show, Eq)
 
@@ -155,6 +161,7 @@ mergeArgsEnvCfg ConfigFile {..} Args {..} = do
                 else concatMap (T.splitOn "," . T.pack) argCryptoCurrencies
         outputFile = argOutputFile
         dryRun = argDryRun
+        aliases = fromMaybe M.empty cfgAliases
     return AppConfig {..}
 
 
@@ -163,6 +170,7 @@ data ConfigFile = ConfigFile
     , cfgRateLimit :: Maybe Bool
     , cfgExcludedCurrencies :: Maybe [String]
     , cfgCryptoCurrencies :: Maybe [String]
+    , cfgAliases :: Maybe (M.Map T.Text T.Text)
     }
     deriving (Show, Eq)
 
@@ -173,6 +181,7 @@ instance FromJSON ConfigFile where
         cfgRateLimit <- o .:? "rate-limit"
         cfgExcludedCurrencies <- o .:? "exclude"
         cfgCryptoCurrencies <- o .:? "cryptocurrencies"
+        cfgAliases <- o .:? "commodity-aliases"
         return ConfigFile {..}
 
 
@@ -191,7 +200,7 @@ loadConfigFile = do
         else return defaultConfig
   where
     defaultConfig :: ConfigFile
-    defaultConfig = ConfigFile Nothing Nothing Nothing Nothing
+    defaultConfig = ConfigFile Nothing Nothing Nothing Nothing Nothing
 
 
 data Args = Args
@@ -350,13 +359,38 @@ specify them in a YAML configuration file. We attempt to parse
 a configuration file in $XDG_CONFIG_HOME/hledger-stockquotes/config.yaml.
 It currently supports the following top-level keys:
 
-- `api-key`:          (string) Your AlphaVantage API Key
-- `cryptocurrencies`: (list of string) Cryptocurrencies to Fetch
-- `exclude`:          (list of strings) Currencies to Exclude
-- `rate-limit`:       (bool) Obey AlphaVantage's Rate Limit
+- `api-key`:           (string) Your AlphaVantage API Key
+- `cryptocurrencies`:  (list of string) Cryptocurrencies to Fetch
+- `exclude`:           (list of strings) Currencies to Exclude
+- `rate-limit`:        (bool) Obey AlphaVantage's Rate Limit
+- `commodity-aliases`: (map of strings) Rename journal commodities before
+                       querying AlphaVantage
 
 Environmental variables will overide any config file options, and CLI flags
 will override both environmental variables & config file options.
+
+
+ALIASES
+
+By specifying the `commedity-aliases` option in your configuration file,
+you can rename the commodities used in your journal to the commodities
+expected by AlphaVantage.
+
+Keys in the map should be your journal commities while their values are the
+AlphaVantage ticker symbols:
+
+    commodity-aliases:
+        MY_VTSAX: VTSAX
+        MY_BTC_CURRENCY: BTC
+
+Renaming is done after commodity exclusion, but before bucketing them into
+equities & cryptocurrencies so the `exclude` list should use your symbols
+while the `cryptocurrencies` list should use AlphaVantage's:
+
+    journal -> exclude -> aliases -> cryptocurrencies
+
+Specifying aliases via command line options or environmental variables is
+not currently supported.
 
 
 USAGE EXAMPLES

@@ -88,6 +88,7 @@ executables:
             - aeson >= 1 && < 3
             - bytestring < 1
             - cmdargs >= 0.6 && < 1
+            - containers < 1
             - directory < 2
             - raw-strings-qq < 2
             - safe-exceptions
