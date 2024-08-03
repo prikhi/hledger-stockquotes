@@ -2,6 +2,10 @@
 
 ## master
 
+
+
+## v0.1.3.0
+
 * Change `Prices` volume field from `Integer` to `Scientific` to support
   decimal amounts returned by cryptocurrency routes.
 * AlphaVantage changed the information message field from `Note` to
