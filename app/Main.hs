@@ -1,89 +1,98 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ViewPatterns #-}
+
 module Main where
 
-import           Control.Applicative            ( (<|>) )
-import           Control.Exception.Safe         ( try )
-import           Control.Monad                  ( forM_ )
-import           Data.Aeson                     ( (.:?)
-                                                , FromJSON(..)
-                                                , withObject
-                                                )
-import           Data.List                      ( partition )
-import           Data.Maybe                     ( fromMaybe )
-import           Data.Time                      ( Day
-                                                , defaultTimeLocale
-                                                , formatTime
-                                                )
-import           Data.Version                   ( showVersion )
-import           Data.Yaml                      ( prettyPrintParseException )
-import           Data.Yaml.Config               ( ignoreEnv
-                                                , loadYamlSettings
-                                                )
-import           System.Console.CmdArgs         ( (&=)
-                                                , Data
-                                                , Typeable
-                                                , args
-                                                , cmdArgs
-                                                , details
-                                                , enum
-                                                , explicit
-                                                , help
-                                                , helpArg
-                                                , ignore
-                                                , name
-                                                , program
-                                                , summary
-                                                , typ
-                                                )
-import           System.Directory               ( doesFileExist )
-import           System.Environment             ( lookupEnv )
-import           System.Environment.XDG.BaseDir ( getUserConfigFile )
-import           System.Exit                    ( exitFailure )
-import           System.IO                      ( hPutStrLn
-                                                , stderr
-                                                )
-import           Text.RawString.QQ              ( r )
+import Control.Applicative ((<|>))
+import Control.Exception.Safe (try)
+import Control.Monad (forM_)
+import Data.Aeson
+    ( FromJSON (..)
+    , withObject
+    , (.:?)
+    )
+import Data.List (partition)
+import Data.Maybe (fromMaybe)
+import Data.Time
+    ( Day
+    , defaultTimeLocale
+    , formatTime
+    )
+import Data.Version (showVersion)
+import Data.Yaml (prettyPrintParseException)
+import Data.Yaml.Config
+    ( ignoreEnv
+    , loadYamlSettings
+    )
+import System.Console.CmdArgs
+    ( Data
+    , Typeable
+    , args
+    , cmdArgs
+    , details
+    , enum
+    , explicit
+    , help
+    , helpArg
+    , ignore
+    , name
+    , program
+    , summary
+    , typ
+    , (&=)
+    )
+import System.Directory (doesFileExist)
+import System.Environment (lookupEnv)
+import System.Environment.XDG.BaseDir (getUserConfigFile)
+import System.Exit (exitFailure)
+import System.IO
+    ( hPutStrLn
+    , stderr
+    )
+import Text.RawString.QQ (r)
 
-import           Hledger.StockQuotes
-import           Paths_hledger_stockquotes      ( version )
-import           Web.AlphaVantage
+import Hledger.StockQuotes
+import Paths_hledger_stockquotes (version)
+import Web.AlphaVantage
 
-import qualified Data.ByteString.Lazy          as LBS
-import qualified Data.Text                     as T
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.Text as T
 
 
 main :: IO ()
 main = do
-    cfgArgs        <- cmdArgs argSpec
-    cfgFile        <- loadConfigFile
+    cfgArgs <- cmdArgs argSpec
+    cfgFile <- loadConfigFile
     AppConfig {..} <- mergeArgsEnvCfg cfgFile cfgArgs
     let cfg = Config $ T.pack apiKey
-    (commodities, start, end) <- getCommoditiesAndDateRange
-        (T.pack <$> excludedCurrencies)
-        journalFile
+    (commodities, start, end) <-
+        getCommoditiesAndDateRange
+            (T.pack <$> excludedCurrencies)
+            journalFile
     if not dryRun
         then do
-            prices <- fetchPrices cfg
-                                  commodities
-                                  cryptoCurrencies
-                                  start
-                                  end
-                                  rateLimit
+            prices <-
+                fetchPrices
+                    cfg
+                    commodities
+                    cryptoCurrencies
+                    start
+                    end
+                    rateLimit
             if null prices
                 then logError "No price directives were able to be fetched."
                 else LBS.writeFile outputFile $ makePriceDirectives prices
         else do
-            putStrLn
-                $  "Querying from "
-                <> showDate start
-                <> " to "
-                <> showDate end
+            putStrLn $
+                "Querying from "
+                    <> showDate start
+                    <> " to "
+                    <> showDate end
             let (stocks, cryptos) =
                     partition (`notElem` cryptoCurrencies) commodities
             putStrLn "Querying Stocks:"
@@ -99,22 +108,23 @@ logError :: String -> IO ()
 logError = hPutStrLn stderr . ("[ERROR] " <>)
 
 
-
 -- CONFIGURATION
 
 data AppConfig = AppConfig
-    { apiKey             :: String
-    , rateLimit          :: Bool
-    , journalFile        :: FilePath
-    , outputFile         :: FilePath
+    { apiKey :: String
+    , rateLimit :: Bool
+    , journalFile :: FilePath
+    , outputFile :: FilePath
     , excludedCurrencies :: [String]
-    , cryptoCurrencies   :: [T.Text]
-    , dryRun             :: Bool
+    , cryptoCurrencies :: [T.Text]
+    , dryRun :: Bool
     }
     deriving (Show, Eq)
 
+
 defaultExcludedCurrencies :: [String]
 defaultExcludedCurrencies = ["$", "USD"]
+
 
 -- | Merge the Arguments, Environmental Variables, & Configuration File
 -- into an 'AppConfig.
@@ -124,12 +134,12 @@ defaultExcludedCurrencies = ["$", "USD"]
 mergeArgsEnvCfg :: ConfigFile -> Args -> IO AppConfig
 mergeArgsEnvCfg ConfigFile {..} Args {..} = do
     envJournalFile <- lookupEnv "LEDGER_FILE"
-    envApiKey      <- lookupEnv "ALPHAVANTAGE_KEY"
-    apiKey         <- case argApiKey <|> envApiKey <|> cfgApiKey of
+    envApiKey <- lookupEnv "ALPHAVANTAGE_KEY"
+    apiKey <- case argApiKey <|> envApiKey <|> cfgApiKey of
         Just k -> return k
         Nothing ->
             logError
-                    "Pass an AlphaVantage API Key with `-a` or $ALPHAVANTAGE_KEY."
+                "Pass an AlphaVantage API Key with `-a` or $ALPHAVANTAGE_KEY."
                 >> exitFailure
     let journalFile =
             fromMaybe "~/.hledger.journal" $ argJournalFile <|> envJournalFile
@@ -139,119 +149,131 @@ mergeArgsEnvCfg ConfigFile {..} Args {..} = do
             if argExcludedCurrencies == defaultExcludedCurrencies
                 then fromMaybe defaultExcludedCurrencies cfgExcludedCurrencies
                 else argExcludedCurrencies
-        cryptoCurrencies = if null argCryptoCurrencies
-            then maybe [] (map T.pack) cfgCryptoCurrencies
-            else concatMap (T.splitOn "," . T.pack) argCryptoCurrencies
+        cryptoCurrencies =
+            if null argCryptoCurrencies
+                then maybe [] (map T.pack) cfgCryptoCurrencies
+                else concatMap (T.splitOn "," . T.pack) argCryptoCurrencies
         outputFile = argOutputFile
-        dryRun     = argDryRun
-    return AppConfig { .. }
+        dryRun = argDryRun
+    return AppConfig {..}
 
 
 data ConfigFile = ConfigFile
-    { cfgApiKey             :: Maybe String
-    , cfgRateLimit          :: Maybe Bool
+    { cfgApiKey :: Maybe String
+    , cfgRateLimit :: Maybe Bool
     , cfgExcludedCurrencies :: Maybe [String]
-    , cfgCryptoCurrencies   :: Maybe [String]
+    , cfgCryptoCurrencies :: Maybe [String]
     }
     deriving (Show, Eq)
 
+
 instance FromJSON ConfigFile where
     parseJSON = withObject "ConfigFile" $ \o -> do
-        cfgApiKey             <- o .:? "api-key"
-        cfgRateLimit          <- o .:? "rate-limit"
+        cfgApiKey <- o .:? "api-key"
+        cfgRateLimit <- o .:? "rate-limit"
         cfgExcludedCurrencies <- o .:? "exclude"
-        cfgCryptoCurrencies   <- o .:? "cryptocurrencies"
-        return ConfigFile { .. }
+        cfgCryptoCurrencies <- o .:? "cryptocurrencies"
+        return ConfigFile {..}
+
 
 loadConfigFile :: IO ConfigFile
 loadConfigFile = do
     configFile <- getUserConfigFile "hledger-stockquotes" "config.yaml"
-    hasConfig  <- doesFileExist configFile
+    hasConfig <- doesFileExist configFile
     if hasConfig
-        then try (loadYamlSettings [configFile] [] ignoreEnv) >>= \case
-            Left (lines . prettyPrintParseException -> errorMsg) ->
-                hPutStrLn stderr "[WARN] Invalid Configuration File Format:"
-                    >> mapM_ (hPutStrLn stderr . ("\t" <>)) errorMsg
-                    >> return defaultConfig
-            Right c -> return c
+        then
+            try (loadYamlSettings [configFile] [] ignoreEnv) >>= \case
+                Left (lines . prettyPrintParseException -> errorMsg) ->
+                    hPutStrLn stderr "[WARN] Invalid Configuration File Format:"
+                        >> mapM_ (hPutStrLn stderr . ("\t" <>)) errorMsg
+                        >> return defaultConfig
+                Right c -> return c
         else return defaultConfig
   where
     defaultConfig :: ConfigFile
     defaultConfig = ConfigFile Nothing Nothing Nothing Nothing
 
 
-
 data Args = Args
-    { argApiKey             :: Maybe String
-    , argRateLimit          :: Either () Bool
-    , argJournalFile        :: Maybe FilePath
-    , argOutputFile         :: FilePath
+    { argApiKey :: Maybe String
+    , argRateLimit :: Either () Bool
+    , argJournalFile :: Maybe FilePath
+    , argOutputFile :: FilePath
     , argExcludedCurrencies :: [String]
-    , argCryptoCurrencies   :: [String]
-    , argDryRun             :: Bool
+    , argCryptoCurrencies :: [String]
+    , argDryRun :: Bool
     }
     deriving (Data, Typeable, Show, Eq)
+
 
 argSpec :: Args
 argSpec =
     Args
-            { argApiKey             =
-                Nothing
+        { argApiKey =
+            Nothing
                 &= help "Your AlphaVantage API key. Default: $ALPHAVANTAGE_KEY"
                 &= explicit
                 &= name "api-key"
                 &= name "a"
                 &= typ "ALPHAVANTAGE_KEY"
-            , argRateLimit          = enum
+        , argRateLimit =
+            enum
                 [ Left ()
-                &= help "Fall back to the configuration file, or True."
-                &= ignore
+                    &= help "Fall back to the configuration file, or True."
+                    &= ignore
                 , Right True
-                &= help "Apply rate-limting for the API"
-                &= explicit
-                &= name "rate-limit"
-                &= name "r"
+                    &= help "Apply rate-limting for the API"
+                    &= explicit
+                    &= name "rate-limit"
+                    &= name "r"
                 , Right False
-                &= help "Disable rate-limiting for the API"
-                &= explicit
-                &= name "no-rate-limit"
-                &= name "n"
+                    &= help "Disable rate-limiting for the API"
+                    &= explicit
+                    &= name "no-rate-limit"
+                    &= name "n"
                 ]
-            , argJournalFile        =
-                Nothing
+        , argJournalFile =
+            Nothing
                 &= help
-                       "Journal file to read commodities from. Default: $LEDGER_FILE or ~/.hledger.journal"
+                    "Journal file to read commodities from. Default: $LEDGER_FILE or ~/.hledger.journal"
                 &= explicit
                 &= name "journal-file"
                 &= name "f"
                 &= typ "FILE"
-            , argOutputFile         =
-                "prices.journal"
+        , argOutputFile =
+            "prices.journal"
                 &= help
-                       "File to write prices into. Existing files will be overwritten. Default: prices.journal"
+                    "File to write prices into. Existing files will be overwritten. Default: prices.journal"
                 &= explicit
                 &= name "output-file"
                 &= name "o"
                 &= typ "FILE"
-            , argCryptoCurrencies   =
-                []
+        , argCryptoCurrencies =
+            []
                 &= help
-                       "Cryptocurrencies to fetch prices for. Flag can be passed multiple times."
+                    "Cryptocurrencies to fetch prices for. Flag can be passed multiple times."
                 &= explicit
                 &= name "c"
                 &= name "crypto"
                 &= typ "TICKER,..."
-            , argExcludedCurrencies = defaultExcludedCurrencies &= args &= typ
-                                          "EXCLUDED_CURRENCY ..."
-            , argDryRun             =
-                False &= explicit &= name "dry-run" &= name "d" &= help
+        , argExcludedCurrencies =
+            defaultExcludedCurrencies
+                &= args
+                &= typ
+                    "EXCLUDED_CURRENCY ..."
+        , argDryRun =
+            False
+                &= explicit
+                &= name "dry-run"
+                &= name "d"
+                &= help
                     "Print the commodities and dates that would be processed."
-            }
+        }
         &= summary
-               (  "hledger-stockquotes v"
-               ++ showVersion version
-               ++ ", Pavan Rikhi 2020"
-               )
+            ( "hledger-stockquotes v"
+                ++ showVersion version
+                ++ ", Pavan Rikhi 2020"
+            )
         &= program "hledger-stockquotes"
         &= helpArg [name "h"]
         &= help "Generate HLedger Price Directives From Daily Stock Quotes."
@@ -259,7 +281,9 @@ argSpec =
 
 
 programDetails :: [String]
-programDetails = lines [r|
+programDetails =
+    lines
+        [r|
 hledger-stockquotes reads a HLedger journal file, queries the AlphaVantage
 stock quote API, and writes a new journal file containing price directives
 for each commodity.

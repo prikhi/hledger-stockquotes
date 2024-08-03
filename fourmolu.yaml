@@ -1,0 +1,10 @@
+---
+
+indentation: 4
+function-arrows: leading
+comma-style: leading
+import-export-style: leading
+record-brace-space: true
+newlines-between-decls: 2
+haddock-style: single-line
+haddock-style-module: multi-line
