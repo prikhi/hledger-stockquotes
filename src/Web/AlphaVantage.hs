@@ -71,13 +71,14 @@ data AlphaVantageResponse a
     deriving (Show, Read, Eq, Generic, Functor)
 
 
--- | Check for errors by attempting to parse a @Note@ or @Information@
--- field. If one does not exist, parse the inner type.
+-- | Check for errors by attempting to parse a @Error Message@, @Note@ or
+-- @Information@ field. If one does not exist, parse the inner type.
 instance (FromJSON a) => FromJSON (AlphaVantageResponse a) where
     parseJSON = withObject "AlphaVantageResponse" $ \v -> do
+        mbErrorMessage <- v .:? "Error Message"
         mbErrorNote <- v .:? "Note"
         mbErrorInfo <- v .:? "Information"
-        case mbErrorNote <|> mbErrorInfo of
+        case mbErrorMessage <|> mbErrorNote <|> mbErrorInfo of
             Nothing -> ApiResponse <$> parseJSON (Object v)
             Just note -> return $ ApiError note
 

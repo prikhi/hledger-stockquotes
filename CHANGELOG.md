@@ -2,6 +2,8 @@
 
 ## master
 
+* AlphaVantage changed the message field for API errors to `Error Message` so
+  we now try to parse this field out of the response as well.
 
 
 ## v0.1.3.0
