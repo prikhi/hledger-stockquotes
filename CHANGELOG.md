@@ -2,6 +2,9 @@
 
 ## master
 
+
+## v0.1.3.2
+
 * Support breaking changes in `hledger-lib` v1.41.
 
 
