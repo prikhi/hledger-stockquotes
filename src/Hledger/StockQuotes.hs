@@ -47,6 +47,7 @@ import System.IO
     , stderr
     )
 
+import Hledger.StockQuotes.Compat (allJournalCommodities)
 import Web.AlphaVantage
     ( AlphaVantageResponse (..)
     , Config
@@ -76,10 +77,7 @@ getCommoditiesAndDateRange excluded journalPath = do
                 definputopts
                 journalPath
     currentTime <- getCurrentTime
-    let commodities =
-            filter (`notElem` excluded) $
-                M.keys (jcommodities journal)
-                    <> M.keys (jinferredcommodities journal)
+    let commodities = filter (`notElem` excluded) $ allJournalCommodities journal
         dates = map tdate $ jtxns journal
         currentYear = (\(y, _, _) -> y) $ toGregorian $ utctDay currentTime
         minDate = case minimumMay dates of
