@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -221,12 +222,12 @@ data AlphaRequest
     | FetchCrypto CommoditySymbol
 
 
--- | Perform the actions at a rate of 5 per minute, then return all the
--- results.
+-- | Perform the actions at a rate of 5 per minute, with a maximum of
+-- 1 action a second, then return all the results.
 --
 -- Note: Will log waiting times to stdout.
 rateLimitActions :: [IO a] -> IO [a]
-rateLimitActions a = case chunksOf 5 a of
+rateLimitActions as = case interleaveDelay <$> chunksOf 5 as of
     [first] -> sequence first
     first : rest -> do
         rest_ <- concat <$> mapM runAndDelay rest
@@ -234,11 +235,27 @@ rateLimitActions a = case chunksOf 5 a of
         return $ first_ ++ rest_
     [] -> return []
   where
+    -- Run a batch of actions, wait 60s, return the results
+    runAndDelay :: [IO a] -> IO [a]
     runAndDelay actions = do
         results <- sequence actions
         putStrLn "Waiting 60 seconds to respect API rate limits."
         threadDelay (60 * 1_000_000)
         return results
+    -- Add 1 second delay between adjacent actions to satisfy
+    -- AlphaVantage's 1 req/s limit.
+    interleaveDelay :: [IO a] -> [IO a]
+    interleaveDelay = \case
+        [] ->
+            []
+        [ma] ->
+            [ma]
+        ma : rest ->
+            (do
+                a <- ma
+                threadDelay 1_000_000
+                pure a
+            ) : interleaveDelay rest
 
 
 -- | Build the Price Directives for the Daily Prices of the given

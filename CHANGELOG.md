@@ -2,6 +2,8 @@
 
 ## master
 
+* Modify rate limiting to not exceed 1 request per second, in accordance with
+  new AlphaVantage free API usage requirements.
 
 ## v0.1.3.2
 
