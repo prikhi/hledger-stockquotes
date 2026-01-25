@@ -5,8 +5,8 @@ name: CI Build
 
 on:
   # Run Daily
-  schedule:
-    - cron: '0 0 * * *'
+  #schedule:
+  #  - cron: '0 0 * * *'
   # Run on Push
   push:
   # Run on Tag Creation
@@ -73,7 +73,7 @@ jobs:
     strategy:
       max-parallel: 3
       matrix:
-        ghc: ['9.2', '9.4', '9.6']
+        ghc: ['9.6', '9.8', '9.10']
     steps:
       - uses: actions/checkout@v4
       - name: Cache Cabal Artifacts
