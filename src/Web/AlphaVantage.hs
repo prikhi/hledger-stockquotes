@@ -6,8 +6,8 @@
 
 {- | A minimal client for the AlphaVantage API.
 
-Currently only supports the @TIME_SERIES_DAILY@ & @DIGITAL_CURRENCY_DAILY@
-endpoints.
+Currently only supports the @TIME_SERIES_DAILY@, @TIME_SERIES_WEEKLY@,
+& @DIGITAL_CURRENCY_DAILY@ endpoints.
 -}
 module Web.AlphaVantage
     ( Config (..)
@@ -15,6 +15,7 @@ module Web.AlphaVantage
     , Prices (..)
     , getDailyPrices
     , getDailyCryptoPrices
+    , getWeeklyPrices
     ) where
 
 import Control.Applicative
@@ -84,26 +85,34 @@ instance (FromJSON a) => FromJSON (AlphaVantageResponse a) where
 
 
 -- | List of Daily Prices for a Stock.
-newtype PriceList
-    = PriceList
-    { fromPriceList :: [(Day, Prices)]
+newtype DailyPriceList
+    = DailyPriceList
+    { fromDailyPriceList :: [(Day, Prices)]
     }
     deriving (Show, Read, Eq, Generic)
 
 
-instance FromJSON PriceList where
-    parseJSON = withObject "PriceList" $ \v -> do
-        inner <- v .: "Time Series (Daily)"
-        let daysAndPrices = HM.toList inner
-        PriceList
-            <$> mapM
-                (\(d, ps) -> (,) <$> parseDay d <*> parseJSON ps)
-                daysAndPrices
-      where
-        parseDay = parseTimeM True defaultTimeLocale "%F"
+instance FromJSON DailyPriceList where
+    parseJSON = withObject "DailyPriceList" $ \v -> do
+        obj <- v .: "Time Series (Daily)"
+        DailyPriceList <$> parseDayToPricesObject obj
 
 
--- | The Single-Day Price Quotes & Volume for a Stock,.
+-- | List of Weekly Prices for a Stock.
+newtype WeeklyPriceList
+    = WeeklyPriceList
+    { fromWeeklyPriceList :: [(Day, Prices)]
+    }
+    deriving (Show, Read, Eq, Generic)
+
+
+instance FromJSON WeeklyPriceList where
+    parseJSON = withObject "WeeklyPriceList" $ \v -> do
+        obj <- v .: "Weekly Time Series"
+        WeeklyPriceList <$> parseDayToPricesObject obj
+
+
+-- | The Single-Day Price Quotes & Volume for a Stock.
 data Prices = Prices
     { pOpen :: Scientific
     -- ^ Day's Opening Price
@@ -139,13 +148,13 @@ newtype CryptoPriceList
 
 instance FromJSON CryptoPriceList where
     parseJSON = withObject "CryptoPriceList" $ \v -> do
-        inner <- v .: "Time Series (Digital Currency Daily)"
-        let daysAndPrices = HM.toList inner
-        CryptoPriceList
-            <$> mapM
-                ( \(d, ps) -> (,) <$> parseAlphavantageDay d <*> parseJSON ps
-                )
-                daysAndPrices
+        obj <- v .: "Time Series (Digital Currency Daily)"
+        CryptoPriceList <$> parseDayToPricesObject obj
+
+
+parseDayToPricesObject :: HM.HashMap String Value -> Parser [(Day, Prices)]
+parseDayToPricesObject =
+    mapM (\(d, ps) -> (,) <$> parseAlphavantageDay d <*> parseJSON ps) . HM.toList
 
 
 parseAlphavantageDay :: String -> Parser Day
@@ -182,7 +191,7 @@ getDailyPrices cfg symbol startDay endDay = do
                     <> ("datatype" =: ("json" :: T.Text))
                     <> ("apikey" =: cApiKey cfg)
                 )
-    return . fmap (filterByDate startDay endDay . fromPriceList) $
+    return . fmap (filterByDate startDay endDay . fromDailyPriceList) $
         responseBody
             resp
 
@@ -212,6 +221,32 @@ getDailyCryptoPrices cfg symbol market startDay endDay = do
     return
         . fmap (filterByDate startDay endDay . fromCryptoPriceList)
         $ responseBody resp
+
+
+-- | Fetch the Weekly Prices for a Stock, returning only the prices between
+-- the two given dates.
+getWeeklyPrices
+    :: Config
+    -> T.Text
+    -> Day
+    -> Day
+    -> IO (AlphaVantageResponse [(Day, Prices)])
+getWeeklyPrices cfg symbol startDay endDay = do
+    resp <-
+        runReq defaultHttpConfig $
+            req
+                GET
+                (https "www.alphavantage.co" /~ ("query" :: T.Text))
+                NoReqBody
+                jsonResponse
+                ( ("function" =: ("TIME_SERIES_WEEKLY" :: T.Text))
+                    <> ("symbol" =: symbol)
+                    <> ("datatype" =: ("json" :: T.Text))
+                    <> ("apikey" =: cApiKey cfg)
+                )
+    return . fmap (filterByDate startDay endDay . fromWeeklyPriceList) $
+        responseBody
+            resp
 
 
 -- | Filter a list of prices to be within a range of two 'Day's.
