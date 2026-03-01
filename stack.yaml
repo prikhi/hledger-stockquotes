@@ -1,6 +1,6 @@
 ---
 
-resolver: lts-24.29
+resolver: lts-24.32
 
 packages:
     - .
